@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { parseIntent } from '@/lib/ai/parse-intent'
 import { resolveENS } from '@/lib/ens/resolve'
 import { probeX402 } from '@/lib/x402/client'
-import { findRoutes } from '@/lib/routing/lifi-router'
+import { findRoutes, findComposerRoutes } from '@/lib/routing/lifi-router'
 import { findV4Routes } from '@/lib/routing/v4-router'
 import { isRateLimited } from '@/lib/rate-limit'
 
@@ -86,6 +86,12 @@ export async function POST(req: NextRequest) {
       case 'swap':
         agentMessage = `I'll swap ${intent.amount} ${intent.fromToken} to ${intent.toToken}${intent.toChain ? ` on ${intent.toChain}` : ''}. Comparing rates...`
         break
+      case 'deposit':
+        agentMessage = `I'll deposit ${intent.amount} ${intent.fromToken} into ${intent.vaultProtocol || 'a lending'} vault${intent.toChain ? ` on ${intent.toChain}` : ''}. Finding Composer routes...`
+        break
+      case 'yield':
+        agentMessage = `I'll find the best yield for ${intent.amount} ${intent.fromToken}${intent.toChain ? ` on ${intent.toChain}` : ''} via ${intent.vaultProtocol || 'available'} vaults. Finding Composer routes...`
+        break
       case 'pay_x402': {
         if (intent.url) {
           // Construct full URL if relative path provided
@@ -107,6 +113,7 @@ export async function POST(req: NextRequest) {
                 fee: `${paymentDetails.amount} ${paymentDetails.token}`,
                 estimatedTime: '~10s',
                 provider: 'x402',
+                routeType: 'standard' as const,
               },
             ]
 
@@ -135,9 +142,11 @@ export async function POST(req: NextRequest) {
       agentMessage = `${ensNote}\n\n${agentMessage}`
     }
 
-    // Find routes for transfer and swap actions
+    // Find routes based on action type
     let routes = undefined
+
     if (intent.action === 'transfer' || intent.action === 'swap') {
+      // --- Standard LI.FI routes for transfers and swaps ---
       const fromAddr = userAddress || '0x0000000000000000000000000000000000000000'
       const fromChain = intent.fromChain || 'ethereum'
       const toChain = intent.toChain || intent.fromChain || 'ethereum'
@@ -187,6 +196,39 @@ export async function POST(req: NextRequest) {
       }
 
       routes = allRoutes
+    } else if (intent.action === 'deposit' || intent.action === 'yield') {
+      // --- Composer routes for vault deposits and yield ---
+      const fromAddr = userAddress || '0x0000000000000000000000000000000000000000'
+      const fromChain = intent.fromChain || 'ethereum'
+      const toChain = intent.toChain || intent.fromChain || 'ethereum'
+      const vaultProtocol = intent.vaultProtocol || 'aave'
+
+      const composerRoutes = await findComposerRoutes({
+        fromAddress: fromAddr,
+        fromChain,
+        toChain,
+        fromToken: intent.fromToken,
+        amount: intent.amount,
+        vaultProtocol,
+        slippage,
+      })
+
+      // If user didn't specify a protocol, also try the other vaults for comparison
+      if (!intent.vaultProtocol) {
+        const altProtocol = vaultProtocol === 'aave' ? 'morpho' : 'aave'
+        const altRoutes = await findComposerRoutes({
+          fromAddress: fromAddr,
+          fromChain,
+          toChain,
+          fromToken: intent.fromToken,
+          amount: intent.amount,
+          vaultProtocol: altProtocol,
+          slippage,
+        })
+        routes = [...composerRoutes, ...altRoutes]
+      } else {
+        routes = composerRoutes
+      }
     }
 
     // Build ENS profile payload when we resolved an ENS name

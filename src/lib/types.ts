@@ -1,15 +1,18 @@
 export type MessageRole = 'user' | 'agent'
 
+export type RouteType = 'standard' | 'composer' | 'contract-call'
+
 export type RouteOption = {
   id: string
   path: string         // e.g. "Base USDC -> Arbitrum USDC"
   fee: string          // e.g. "$0.12"
   estimatedTime: string
   provider: string     // e.g. "LI.FI", "Circle CCTP", "Uniswap v4"
+  routeType?: RouteType // categorise route for frontend display
 }
 
 export type ParsedIntent = {
-  action: 'transfer' | 'swap' | 'pay_x402'
+  action: 'transfer' | 'swap' | 'deposit' | 'yield' | 'pay_x402'
   amount: string
   fromToken: string
   toToken: string
@@ -17,6 +20,7 @@ export type ParsedIntent = {
   toChain?: string
   fromChain?: string
   url?: string         // for x402
+  vaultProtocol?: string // e.g. "aave", "morpho" — used for Composer routes
 }
 
 /**

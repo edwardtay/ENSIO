@@ -60,6 +60,58 @@ export const TOKEN_MAP: Record<string, { decimals: number; addresses: Record<num
   },
 }
 
+/**
+ * Vault token addresses used by LI.FI Composer for deposit / yield workflows.
+ * Keyed by protocol:underlying, valued by chainId -> vault token address.
+ */
+export const VAULT_TOKEN_MAP: Record<
+  string,
+  { protocol: string; underlying: string; addresses: Record<number, string> }
+> = {
+  'aave:USDC': {
+    protocol: 'aave',
+    underlying: 'USDC',
+    addresses: {
+      [ChainId.ETH]: '0x98C23E9d8f34FEFb1B7BD6a91B7FF122F4e16F5c', // aEthUSDC (Aave v3 Ethereum)
+      [ChainId.BAS]: '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB', // aBasUSDC (Aave v3 Base)
+    },
+  },
+  'morpho:USDC': {
+    protocol: 'morpho',
+    underlying: 'USDC',
+    addresses: {
+      [ChainId.BAS]: '0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A', // Morpho vault USDC on Base
+      [ChainId.ETH]: '0xBEEF01735c132Ada46AA9aA4c54623cAA92A64CB', // Morpho vault USDC on Ethereum
+    },
+  },
+}
+
+/**
+ * Look up the vault token address for a given protocol + underlying token on a chain.
+ * Returns undefined when no vault is known.
+ */
+export function getVaultTokenAddress(
+  protocol: string,
+  underlyingSymbol: string,
+  chainId: number
+): string | undefined {
+  const key = `${protocol.toLowerCase()}:${underlyingSymbol.toUpperCase()}`
+  return VAULT_TOKEN_MAP[key]?.addresses[chainId]
+}
+
+/**
+ * Check whether a token address corresponds to a known vault token.
+ */
+export function isVaultToken(address: string): boolean {
+  const lower = address.toLowerCase()
+  for (const entry of Object.values(VAULT_TOKEN_MAP)) {
+    for (const addr of Object.values(entry.addresses)) {
+      if (addr.toLowerCase() === lower) return true
+    }
+  }
+  return false
+}
+
 /** All token symbols the system supports */
 export const SUPPORTED_TOKENS = Object.keys(TOKEN_MAP)
 

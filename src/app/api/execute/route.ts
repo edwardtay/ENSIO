@@ -19,9 +19,21 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    if (!intent.fromToken || !intent.toToken || !intent.amount) {
+    // Deposit/yield intents resolve the vault token internally, so toToken
+    // is not required for those actions.
+    const isComposerAction =
+      intent.action === 'deposit' || intent.action === 'yield'
+
+    if (!intent.fromToken || !intent.amount) {
       return NextResponse.json(
-        { error: 'Incomplete intent: fromToken, toToken, and amount required' },
+        { error: 'Incomplete intent: fromToken and amount required' },
+        { status: 400 }
+      )
+    }
+
+    if (!isComposerAction && !intent.toToken) {
+      return NextResponse.json(
+        { error: 'Incomplete intent: toToken required for transfer/swap' },
         { status: 400 }
       )
     }

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 import type { Message, RouteOption, ParsedIntent } from '@/lib/types'
 import { Card, CardContent } from '@/components/ui/card'
@@ -63,6 +64,53 @@ export function MessageBubble({ message, onSelectRoute, onRefreshRoutes }: Messa
         >
           {message.content}
         </div>
+
+        {/* ENS recipient profile card */}
+        {!isUser && message.ensProfile && (
+          <div className="w-full bg-white border border-[#E4E2DC] rounded-xl px-4 py-3 flex items-start gap-3">
+            {message.ensProfile.avatar ? (
+              <Image
+                alt={message.ensProfile.name || 'Avatar'}
+                src={message.ensProfile.avatar}
+                width={40}
+                height={40}
+                className="rounded-full shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-[#E4E2DC] flex items-center justify-center shrink-0">
+                <span className="text-sm font-bold text-[#6B6A63]">
+                  {(message.ensProfile.name || '?').charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
+            <div className="flex flex-col gap-1 min-w-0">
+              {message.ensProfile.name && (
+                <span className="text-[13px] font-semibold text-[#1C1B18] truncate">
+                  {message.ensProfile.name}
+                </span>
+              )}
+              {message.ensProfile.description && (
+                <span className="text-[12px] text-[#6B6A63] line-clamp-2">
+                  {message.ensProfile.description}
+                </span>
+              )}
+              {(message.ensProfile.preferredToken || message.ensProfile.preferredChain) && (
+                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                  {message.ensProfile.preferredToken && (
+                    <Badge variant="secondary" className="text-[10px] font-semibold bg-[#F2F0EB] text-[#6B6A63] border-[#E4E2DC]">
+                      {message.ensProfile.preferredToken}
+                    </Badge>
+                  )}
+                  {message.ensProfile.preferredChain && (
+                    <Badge variant="secondary" className="text-[10px] font-semibold bg-[#F2F0EB] text-[#6B6A63] border-[#E4E2DC]">
+                      {message.ensProfile.preferredChain.charAt(0).toUpperCase() + message.ensProfile.preferredChain.slice(1)}
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ENS preference action — rendered as a simple confirm button */}
         {message.routes && message.routes.length === 1 && message.routes[0].id === 'ens-preference' && (

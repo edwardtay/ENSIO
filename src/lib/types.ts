@@ -71,8 +71,11 @@ export type Message = {
   timestamp: number
   /** ENS profile data when the recipient was resolved from an ENS name */
   ensProfile?: {
+    name?: string
     avatar?: string
     description?: string
+    preferredToken?: string
+    preferredChain?: string
   }
   /** User's ENS name, used when executing ENS preference writes */
   ensName?: string

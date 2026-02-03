@@ -84,6 +84,7 @@ export function ChatInterface() {
         txHash: data.txHash,
         timestamp: Date.now(),
         ensName: data.ensName,
+        ensProfile: data.ensProfile,
       }
 
       setMessages((prev) => [...prev, agentMessage])

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseIntent } from '@/lib/ai/parse-intent'
-import { resolveENS } from '@/lib/ens/resolve'
+import { resolveENS, resolveChainAddress } from '@/lib/ens/resolve'
 import { probeX402 } from '@/lib/x402/client'
 import { findRoutes, findComposerRoutes } from '@/lib/routing/lifi-router'
 import { findV4Routes } from '@/lib/routing/v4-router'
@@ -36,8 +36,11 @@ export async function POST(req: NextRequest) {
     let ensNote = ''
     let ensAvatar: string | undefined
     let ensDescription: string | undefined
+    let ensPreferredToken: string | undefined
+    let ensPreferredChain: string | undefined
     let ensSlippage: number | undefined
     let ensMaxFee: string | undefined
+    let ensNameResolved: string | undefined
     if (intent.toAddress && intent.toAddress.endsWith('.eth')) {
       const ensResult = await resolveENS(intent.toAddress)
       if (!ensResult.address) {
@@ -52,6 +55,9 @@ export async function POST(req: NextRequest) {
       // Capture profile fields for the response
       ensAvatar = ensResult.avatar
       ensDescription = ensResult.description
+      ensPreferredToken = ensResult.preferredToken
+      ensPreferredChain = ensResult.preferredChain
+      ensNameResolved = intent.toAddress
 
       // Build human-readable preference summary
       const prefParts: string[] = []
@@ -175,7 +181,7 @@ export async function POST(req: NextRequest) {
               },
             ],
             ...(resolvedAddress ? { resolvedAddress } : {}),
-            ...(ensAvatar || ensDescription ? { ensProfile: { avatar: ensAvatar, description: ensDescription } } : {}),
+            ...(ensNameResolved ? { ensProfile: { name: ensNameResolved, avatar: ensAvatar, description: ensDescription, preferredToken: ensPreferredToken, preferredChain: ensPreferredChain } } : {}),
             ensName,
           })
         }
@@ -189,7 +195,7 @@ export async function POST(req: NextRequest) {
           intent,
           routes: consolidateRoutes.length > 0 ? consolidateRoutes : undefined,
           ...(resolvedAddress ? { resolvedAddress } : {}),
-          ...(ensAvatar || ensDescription ? { ensProfile: { avatar: ensAvatar, description: ensDescription } } : {}),
+          ...(ensNameResolved ? { ensProfile: { name: ensNameResolved, avatar: ensAvatar, description: ensDescription, preferredToken: ensPreferredToken, preferredChain: ensPreferredChain } } : {}),
         })
       }
       case 'pay_x402': {
@@ -263,6 +269,19 @@ export async function POST(req: NextRequest) {
             agentMessage = `I'll swap ${intent.amount} ${intent.fromToken}${fromChain !== toChain ? ` on ${cap(fromChain)}` : ''} to ${intent.toToken} on ${cap(toChain)}. Comparing rates...`
           } else {
             agentMessage = `I'll transfer ${intent.amount} ${intent.fromToken}${displayAddress ? ` to ${displayAddress}` : ''} on ${cap(toChain)}. Finding the best route...`
+          }
+        }
+      }
+
+      // ENSIP-9: resolve chain-specific address when sending to an ENS name on L2
+      const finalToChainId = CHAIN_MAP[toChain] || CHAIN_MAP.ethereum
+      if (ensNameResolved && finalToChainId !== 1) {
+        const chainAddr = await resolveChainAddress(ensNameResolved, finalToChainId)
+        if (chainAddr) {
+          resolvedAddress = chainAddr
+          ensNote = `Resolved ${ensNameResolved} → ${chainAddr} (${cap(toChain)} address via ENSIP-9)`
+          if (ensDescription) {
+            ensNote += `\nProfile: ${ensDescription}`
           }
         }
       }
@@ -349,8 +368,8 @@ export async function POST(req: NextRequest) {
 
     // Build ENS profile payload when we resolved an ENS name
     const ensProfile =
-      ensAvatar || ensDescription
-        ? { avatar: ensAvatar, description: ensDescription }
+      ensNameResolved
+        ? { name: ensNameResolved, avatar: ensAvatar, description: ensDescription, preferredToken: ensPreferredToken, preferredChain: ensPreferredChain }
         : undefined
 
     return NextResponse.json({

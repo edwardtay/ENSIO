@@ -1,5 +1,5 @@
 import { createPublicClient, http } from 'viem'
-import { normalize } from 'viem/ens'
+import { normalize, toCoinType } from 'viem/ens'
 import { mainnet } from 'viem/chains'
 import type { ENSResolution } from '@/lib/types'
 import { getPreference } from '@/lib/ens/store'
@@ -87,5 +87,33 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
     autoConsolidate,
     avatar,
     description,
+  }
+}
+
+/**
+ * ENSIP-9 multi-chain address resolution.
+ *
+ * Looks up the chain-specific address for an ENS name using
+ * `addr(node, coinType)`. For EVM chains the coin type is derived via
+ * ENSIP-11: `0x80000000 | chainId`.
+ *
+ * Returns the chain-specific address if set, otherwise `null`.
+ */
+export async function resolveChainAddress(
+  name: string,
+  chainId: number,
+): Promise<string | null> {
+  // Mainnet uses the default ETH coin type (60) — handled by resolveENS
+  if (chainId === 1) return null
+
+  try {
+    const normalized = normalize(name)
+    const address = await client.getEnsAddress({
+      name: normalized,
+      coinType: toCoinType(chainId),
+    })
+    return address ?? null
+  } catch {
+    return null
   }
 }

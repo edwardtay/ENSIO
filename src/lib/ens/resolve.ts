@@ -2,6 +2,7 @@ import { createPublicClient, http } from 'viem'
 import { normalize } from 'viem/ens'
 import { mainnet } from 'viem/chains'
 import type { ENSResolution } from '@/lib/types'
+import { getPreference } from '@/lib/ens/store'
 
 const client = createPublicClient({
   chain: mainnet,
@@ -16,6 +17,7 @@ const client = createPublicClient({
  *   com.payagent.token     – receiver's preferred token
  *   com.payagent.slippage  – receiver's preferred max slippage (e.g. "0.5")
  *   com.payagent.maxFee    – max acceptable fee in USD   (e.g. "1.00")
+ *   com.payagent.autoconsolidate – auto-consolidate deposits to preferred token (e.g. "true")
  *
  * Standard records:
  *   avatar                 – ENS avatar URL
@@ -29,8 +31,20 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
   let preferredToken: string | undefined
   let preferredSlippage: string | undefined
   let maxFee: string | undefined
+  let autoConsolidate: string | undefined
   let avatar: string | undefined
   let description: string | undefined
+
+  // Check offchain store first (free preferences take precedence for token + chain)
+  try {
+    const offchain = await getPreference(name)
+    if (offchain) {
+      preferredToken = offchain.token
+      preferredChain = offchain.chain
+    }
+  } catch {
+    // Offchain store unavailable, fall through to on-chain
+  }
 
   try {
     const keys = [
@@ -38,6 +52,7 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
       'com.payagent.token',
       'com.payagent.slippage',
       'com.payagent.maxFee',
+      'com.payagent.autoconsolidate',
       'avatar',
       'description',
     ] as const
@@ -51,12 +66,14 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
       ),
     )
 
-    preferredChain = results[0]
-    preferredToken = results[1]
+    // Offchain values take precedence for token + chain; on-chain used for the rest
+    if (!preferredChain) preferredChain = results[0]
+    if (!preferredToken) preferredToken = results[1]
     preferredSlippage = results[2]
     maxFee = results[3]
-    avatar = results[4]
-    description = results[5]
+    autoConsolidate = results[4]
+    avatar = results[5]
+    description = results[6]
   } catch {
     // Text records not set, that's fine
   }
@@ -67,6 +84,7 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
     preferredToken,
     preferredSlippage,
     maxFee,
+    autoConsolidate,
     avatar,
     description,
   }

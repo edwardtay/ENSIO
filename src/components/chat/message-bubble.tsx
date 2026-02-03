@@ -64,25 +64,39 @@ export function MessageBubble({ message, onSelectRoute, onRefreshRoutes }: Messa
           {message.content}
         </div>
 
+        {/* ENS preference action — rendered as a simple confirm button */}
+        {message.routes && message.routes.length === 1 && message.routes[0].id === 'ens-preference' && (
+          <Button
+            className="w-full py-3 rounded-2xl bg-[#1C1B18] hover:bg-[#2D2C28] text-[#F8F7F4] font-medium cursor-pointer shadow-md shadow-[#1C1B18]/10 hover:shadow-lg transition-all"
+            onClick={() => onSelectRoute?.(message.routes![0], message.intent, message.ensName)}
+          >
+            Set preference (free)
+          </Button>
+        )}
+
         {/* Route option cards */}
-        {message.routes && message.routes.length > 0 && (
+        {message.routes && message.routes.length > 0 && !(message.routes.length === 1 && message.routes[0].id === 'ens-preference') && (
           <div className="flex flex-col gap-2 w-full">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[#9C9B93] font-medium">
-                {message.routes.length} route{message.routes.length > 1 ? 's' : ''} found
-              </span>
-              {onRefreshRoutes && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-xs text-[#9C9B93] hover:text-[#6B6A63] h-7 px-2 gap-1 cursor-pointer"
-                  onClick={onRefreshRoutes}
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  Refresh
-                </Button>
-              )}
-            </div>
+            {(message.routes.length > 1 || onRefreshRoutes) && (
+              <div className="flex items-center justify-between">
+                {message.routes.length > 1 && (
+                  <span className="text-xs text-[#9C9B93] font-medium">
+                    {message.routes.length} routes found
+                  </span>
+                )}
+                {onRefreshRoutes && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs text-[#9C9B93] hover:text-[#6B6A63] h-7 px-2 gap-1 cursor-pointer ml-auto"
+                    onClick={onRefreshRoutes}
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    Refresh
+                  </Button>
+                )}
+              </div>
+            )}
             {message.routes.map((route) => (
               <Card
                 key={route.id}

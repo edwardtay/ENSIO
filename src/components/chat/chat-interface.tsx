@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useAccount, useSendTransaction } from 'wagmi'
+import { useAccount, useSendTransaction, useSignTypedData } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { MessageBubble } from './message-bubble'
 import type { Message, RouteOption, ParsedIntent } from '@/lib/types'
+import { PREFERENCE_DOMAIN, PREFERENCE_TYPES, buildPreferenceMessage } from '@/lib/ens/eip712'
 
 const STORE_OF_VALUE_OPTIONS = [
   { label: 'USDC', message: 'Set my preferred store of value to USDC' },
@@ -18,6 +19,7 @@ const STORE_OF_VALUE_OPTIONS = [
 export function ChatInterface() {
   const { address, chainId } = useAccount()
   const { sendTransactionAsync } = useSendTransaction()
+  const { signTypedDataAsync } = useSignTypedData()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [slippage] = useState('0.5')
@@ -169,6 +171,75 @@ export function ChatInterface() {
         timestamp: Date.now(),
       }
       setMessages((prev) => [...prev, noIntentMsg])
+      return
+    }
+
+    // --- Free offchain ENS preference signing ---
+    if (route.id === 'ens-preference' && ensName) {
+      setIsExecuting(true)
+      try {
+        // Fetch current nonce
+        const nonceRes = await fetch(`/api/ens/preferences?name=${encodeURIComponent(ensName)}`)
+        const { nonce } = await nonceRes.json()
+
+        const token = intent.toToken || 'USDC'
+        const chain = intent.toChain || 'base'
+        const message = buildPreferenceMessage(ensName, token, chain, BigInt(nonce))
+
+        // Sign EIP-712 typed data (free, no gas)
+        const signature = await signTypedDataAsync({
+          domain: PREFERENCE_DOMAIN,
+          types: PREFERENCE_TYPES,
+          primaryType: 'SetPreference',
+          message,
+        })
+
+        // Submit to API
+        const res = await fetch('/api/ens/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ensName,
+            token,
+            chain,
+            nonce: nonce.toString(),
+            signature,
+            signerAddress: address,
+          }),
+        })
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.error || 'Failed to save preference')
+        }
+
+        const successMsg: Message = {
+          id: crypto.randomUUID(),
+          role: 'agent',
+          content: `Preference saved! ${ensName} is now set to receive ${token} on ${chain.charAt(0).toUpperCase() + chain.slice(1)}. Anyone paying ${ensName} will auto-route to your preferred token.`,
+          timestamp: Date.now(),
+        }
+        setMessages((prev) => [...prev, successMsg])
+      } catch (err: unknown) {
+        const errMessage = err instanceof Error ? err.message : 'Failed to set preference'
+        const isRejected =
+          errMessage.toLowerCase().includes('rejected') ||
+          errMessage.toLowerCase().includes('denied') ||
+          errMessage.toLowerCase().includes('user refused')
+        const displayMsg = isRejected
+          ? 'Signature request was rejected in your wallet.'
+          : `Failed to set preference: ${errMessage}`
+
+        const errorMsg: Message = {
+          id: crypto.randomUUID(),
+          role: 'agent',
+          content: displayMsg,
+          timestamp: Date.now(),
+        }
+        setMessages((prev) => [...prev, errorMsg])
+      } finally {
+        setIsExecuting(false)
+      }
       return
     }
 

@@ -168,8 +168,8 @@ export async function POST(req: NextRequest) {
               {
                 id: 'ens-preference',
                 path: `Set ${prefToken} on ${cap(prefChain)} on ${ensName}`,
-                fee: 'Gas only',
-                estimatedTime: '~15s',
+                fee: 'Free',
+                estimatedTime: 'Instant',
                 provider: 'ENS',
                 routeType: 'standard' as const,
               },

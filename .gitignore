@@ -46,6 +46,9 @@ contracts/cache
 *.tsbuildinfo
 next-env.d.ts
 
+# offchain ENS preference store
+data/ens-preferences.json
+
 # claude
 .claude/
 CLAUDE.md

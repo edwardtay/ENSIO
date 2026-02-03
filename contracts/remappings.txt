@@ -2,3 +2,4 @@
 @uniswap/v4-periphery/=../node_modules/@uniswap/v4-periphery/
 forge-std/=../node_modules/@uniswap/v4-core/lib/forge-std/src/
 @openzeppelin/uniswap-hooks/=../node_modules/@openzeppelin/uniswap-hooks/src/
+@openzeppelin/contracts/=../node_modules/@openzeppelin/contracts/

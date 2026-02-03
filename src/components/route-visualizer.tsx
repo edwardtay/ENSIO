@@ -8,20 +8,22 @@ type RouteVisualizerProps = {
   intent?: ParsedIntent
 }
 
-/** Map chain names to their brand colors */
-function getChainColor(chain: string): { bg: string; border: string; text: string; glow: string } {
+/** Map chain names to their brand colors for warm Gold Standard theme */
+function getChainColor(chain: string): { bg: string; border: string; text: string; dot: string } {
   const lower = chain.toLowerCase()
   if (lower.includes('base'))
-    return { bg: 'bg-blue-500', border: 'border-blue-400', text: 'text-blue-300', glow: 'shadow-blue-500/30' }
+    return { bg: 'bg-[#EBF2FE]', border: 'border-[#C4D6F0]', text: 'text-[#3B6EB5]', dot: 'bg-[#3B82F6]' }
   if (lower.includes('arbitrum'))
-    return { bg: 'bg-orange-500', border: 'border-orange-400', text: 'text-orange-300', glow: 'shadow-orange-500/30' }
+    return { bg: 'bg-[#F5EFE0]', border: 'border-[#DDD0B5]', text: 'text-[#9C6A2F]', dot: 'bg-[#B8860B]' }
   if (lower.includes('optimism'))
-    return { bg: 'bg-red-500', border: 'border-red-400', text: 'text-red-300', glow: 'shadow-red-500/30' }
+    return { bg: 'bg-[#FEF2F2]', border: 'border-[#FECACA]', text: 'text-[#991B1B]', dot: 'bg-[#C53030]' }
+  if (lower.includes('unichain'))
+    return { bg: 'bg-[#F5EFE0]', border: 'border-[#DDD0B5]', text: 'text-[#9C6A2F]', dot: 'bg-[#B8860B]' }
   if (lower.includes('ethereum') || lower.includes('mainnet'))
-    return { bg: 'bg-purple-500', border: 'border-purple-400', text: 'text-purple-300', glow: 'shadow-purple-500/30' }
+    return { bg: 'bg-[#F2F0EB]', border: 'border-[#E4E2DC]', text: 'text-[#6B6A63]', dot: 'bg-[#6B6A63]' }
   if (lower.includes('polygon'))
-    return { bg: 'bg-violet-500', border: 'border-violet-400', text: 'text-violet-300', glow: 'shadow-violet-500/30' }
-  return { bg: 'bg-gray-500', border: 'border-gray-400', text: 'text-gray-300', glow: 'shadow-gray-500/30' }
+    return { bg: 'bg-[#F2F0EB]', border: 'border-[#E4E2DC]', text: 'text-[#6B6A63]', dot: 'bg-[#6B6A63]' }
+  return { bg: 'bg-[#F2F0EB]', border: 'border-[#E4E2DC]', text: 'text-[#6B6A63]', dot: 'bg-[#9C9B93]' }
 }
 
 /** Parse route.path string like "Base USDC -> Arbitrum USDC" into steps */
@@ -49,8 +51,11 @@ function parseRoutePath(path: string, intent?: ParsedIntent) {
 
   // Fallback using intent data
   if (intent) {
-    const from = { chain: intent.fromChain || '', token: intent.fromToken || '?' }
-    const to = { chain: intent.toChain || intent.fromChain || '', token: intent.toToken || '?' }
+    const cap = (s: string) => s ? s.charAt(0).toUpperCase() + s.slice(1) : ''
+    const fromChain = cap(intent.fromChain || intent.toChain || '')
+    const toChain = cap(intent.toChain || intent.fromChain || '')
+    const from = { chain: fromChain, token: intent.fromToken || '?' }
+    const to = { chain: toChain, token: intent.toToken || '?' }
     return [from, to]
   }
 
@@ -61,11 +66,7 @@ function ChainDot({ chain }: { chain: string }) {
   const colors = getChainColor(chain)
   return (
     <span
-      className={cn(
-        'inline-block w-2.5 h-2.5 rounded-full shadow-md shrink-0',
-        colors.bg,
-        colors.glow
-      )}
+      className={cn('inline-block w-2 h-2 rounded-full shrink-0', colors.dot)}
       title={chain}
     />
   )
@@ -73,14 +74,14 @@ function ChainDot({ chain }: { chain: string }) {
 
 function AnimatedArrow() {
   return (
-    <span className="flex items-center gap-0.5 text-gray-500 shrink-0 route-arrow">
-      <span className="w-4 h-px bg-gradient-to-r from-gray-600 to-gray-400" />
+    <span className="flex items-center gap-0.5 shrink-0 route-arrow">
+      <span className="w-4 h-px bg-gradient-to-r from-[#D5D3CC] to-[#B8B5AD]" />
       <svg
-        width="8"
-        height="8"
+        width="7"
+        height="7"
         viewBox="0 0 8 8"
         fill="none"
-        className="text-gray-400"
+        className="text-[#B8B5AD]"
       >
         <path
           d="M1 1L4 4L1 7"
@@ -96,8 +97,8 @@ function AnimatedArrow() {
 
 function MiddleStep({ provider }: { provider: string }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-700/60 border border-gray-600/40 text-[10px] text-gray-300 font-medium shrink-0">
-      <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#F5EFE0] border border-[#DDD0B5] text-[10px] text-[#A17D2F] font-semibold shrink-0">
+      <span className="w-1.5 h-1.5 rounded-full bg-[#A17D2F] animate-pulse" />
       {provider}
     </span>
   )
@@ -129,11 +130,15 @@ export function RouteVisualizer({ route, intent }: RouteVisualizerProps) {
             </>
           )}
           {/* Step node */}
-          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-gray-800/80 border border-gray-700/50 shrink-0">
+          <span className={cn(
+            'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md border shrink-0',
+            step.chain ? getChainColor(step.chain).bg : 'bg-[#F2F0EB]',
+            step.chain ? getChainColor(step.chain).border : 'border-[#E4E2DC]'
+          )}>
             {step.chain && <ChainDot chain={step.chain} />}
-            <span className="text-[11px] font-medium text-gray-200">
+            <span className="text-[11px] font-medium text-[#1C1B18]">
               {step.chain && (
-                <span className={cn('mr-1', getChainColor(step.chain).text)}>
+                <span className={cn('mr-1 font-semibold', getChainColor(step.chain).text)}>
                   {step.chain}
                 </span>
               )}
@@ -145,7 +150,7 @@ export function RouteVisualizer({ route, intent }: RouteVisualizerProps) {
 
       {/* Cross-chain badge */}
       {isCrossChain && (
-        <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-400 border border-indigo-500/20 font-medium">
+        <span className="ml-1 text-[9px] px-1.5 py-0.5 rounded-full bg-[#F2F0EB] text-[#6B6A63] border border-[#E4E2DC] font-semibold">
           cross-chain
         </span>
       )}

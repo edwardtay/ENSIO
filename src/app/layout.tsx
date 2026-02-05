@@ -23,9 +23,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PayAgent — Auto-Consolidate to Your Preferred Store of Value",
+  title: "AcceptAny — Accept any token, earn yield",
   description:
-    "Set your preferred store of value in ENS. PayAgent auto-consolidates everything you receive through a Uniswap v4 hook at 0.01% fees.",
+    "Accept any token on any chain. Auto-convert to USDC and deposit to yield vaults via ENS + Uniswap v4.",
 };
 
 export default function RootLayout({

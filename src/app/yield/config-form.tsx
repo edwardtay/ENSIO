@@ -119,7 +119,7 @@ export function ConfigForm() {
             </svg>
           </div>
           <p className="text-[#1C1B18] font-medium mb-4">
-            Connect your wallet to configure YieldRoute
+            Connect your wallet to configure AcceptAny
           </p>
           <ConnectButton.Custom>
             {({ openConnectModal }) => (
@@ -160,7 +160,7 @@ export function ConfigForm() {
             ENS name required
           </p>
           <p className="text-sm text-[#6B6960] mb-4">
-            You need an ENS name to use YieldRoute. Your vault preference is stored as an ENS text record.
+            You need an ENS name to use AcceptAny. Your vault preference is stored as an ENS text record.
           </p>
           <a
             href="https://app.ens.domains"

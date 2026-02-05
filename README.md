@@ -1,4 +1,4 @@
-# YieldRoute
+# AcceptAny
 
 Accept any token on any chain. Auto-convert to USDC and earn yield.
 

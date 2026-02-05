@@ -463,7 +463,7 @@ export function PaymentFlow({ ensName }: Props) {
       {/* Info footer */}
       <p className="text-xs text-center text-[#6B6960]">
         Powered by LI.FI cross-chain routing
-        {hasYieldVault && ' + YieldRoute auto-deposit'}
+        {hasYieldVault && ' + AcceptAny auto-deposit'}
       </p>
     </div>
   )

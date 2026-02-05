@@ -16,7 +16,7 @@ export default function YieldConfigPage() {
               </svg>
             </div>
             <span className="text-[15px] font-semibold tracking-tight text-[#1C1B18]">
-              YieldRoute
+              AcceptAny
             </span>
           </Link>
           <Link
@@ -32,7 +32,7 @@ export default function YieldConfigPage() {
       <main className="max-w-lg mx-auto px-6 py-12">
         <div className="mb-8">
           <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#1C1B18] mb-2">
-            YieldRoute
+            AcceptAny
           </h1>
           <p className="text-[#6B6960]">
             Configure your ENS to auto-deposit incoming payments into yield vaults

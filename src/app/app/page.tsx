@@ -46,7 +46,7 @@ export default function AppPage() {
             </svg>
           </div>
           <span className="text-[15px] font-semibold tracking-tight text-[#1C1B18]">
-            YieldRoute
+            AcceptAny
           </span>
         </Link>
 

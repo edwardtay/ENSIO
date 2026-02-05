@@ -74,23 +74,41 @@ function useEnsName(address?: string) {
 
 function useEnsPreferences(ensName: string | null) {
   const [vault, setVault] = useState<string | null>(null)
+  const [avatar, setAvatar] = useState<string | null>(null)
+  const [description, setDescription] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     if (!ensName) {
       setVault(null)
+      setAvatar(null)
+      setDescription(null)
       return
     }
 
     setLoading(true)
     fetch(`/api/ens/resolve?name=${encodeURIComponent(ensName)}`)
       .then((r) => r.json())
-      .then((data) => setVault(data.yieldVault ?? null))
-      .catch(() => setVault(null))
+      .then((data) => {
+        setVault(data.yieldVault ?? null)
+        setDescription(data.description ?? null)
+        // Convert IPFS URL to HTTP gateway
+        if (data.avatar) {
+          const avatarUrl = data.avatar.startsWith('ipfs://')
+            ? `https://ipfs.io/ipfs/${data.avatar.slice(7)}`
+            : data.avatar
+          setAvatar(avatarUrl)
+        }
+      })
+      .catch(() => {
+        setVault(null)
+        setAvatar(null)
+        setDescription(null)
+      })
       .finally(() => setLoading(false))
   }, [ensName])
 
-  return { vault, loading }
+  return { vault, avatar, description, loading }
 }
 
 function useReceipts(address?: string) {
@@ -178,7 +196,7 @@ export function ReceiverDashboard() {
   const { sendTransactionAsync } = useSendTransaction()
   const { switchChainAsync } = useSwitchChain()
   const { name: ensName, loading: ensLoading } = useEnsName(address)
-  const { vault: currentVault, loading: prefsLoading } = useEnsPreferences(ensName)
+  const { vault: currentVault, avatar: ensAvatar, description: ensDescription, loading: prefsLoading } = useEnsPreferences(ensName)
   const { receipts, loading: receiptsLoading } = useReceipts(address)
   const vaultApys = useVaultApys()
   const { position: vaultPosition, loading: positionLoading } = useVaultPosition(currentVault ?? undefined, address)
@@ -339,11 +357,19 @@ export function ReceiverDashboard() {
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
             {/* ENS Avatar or Placeholder */}
-            <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#627EEA] to-[#C99FFF] flex items-center justify-center flex-shrink-0">
-              <span className="text-xl font-bold text-white">
-                {ensName?.charAt(0).toUpperCase()}
-              </span>
-            </div>
+            {ensAvatar ? (
+              <img
+                src={ensAvatar}
+                alt={ensName || 'ENS Avatar'}
+                className="w-14 h-14 rounded-xl object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-[#627EEA] to-[#C99FFF] flex items-center justify-center flex-shrink-0">
+                <span className="text-xl font-bold text-white">
+                  {ensName?.charAt(0).toUpperCase()}
+                </span>
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <h1 className="text-xl font-semibold text-[#1C1B18]">{ensName}</h1>
@@ -362,6 +388,9 @@ export function ReceiverDashboard() {
               <p className="text-xs font-mono text-[#6B6960] mt-1">
                 {address?.slice(0, 6)}...{address?.slice(-4)}
               </p>
+              {ensDescription && (
+                <p className="text-sm text-[#6B6960] mt-1">{ensDescription}</p>
+              )}
 
               {/* ENS Records */}
               <div className="mt-3 pt-3 border-t border-[#E4E2DC] space-y-2">
@@ -395,16 +424,6 @@ export function ReceiverDashboard() {
                     </div>
                     <span className="text-[#1C1B18]">Base</span>
                     <span className="text-[#9C9B93] text-xs">(8453)</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6B6960]">ENS Record Chain</span>
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-4 h-4 rounded-full bg-[#627EEA] flex items-center justify-center">
-                      <span className="text-[8px] font-bold text-white">E</span>
-                    </div>
-                    <span className="text-[#1C1B18]">Ethereum</span>
-                    <span className="text-[#9C9B93] text-xs">(1)</span>
                   </div>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import { createPublicClient, createWalletClient, http, type Address } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
 import { base } from 'viem/chains'
-import { getStorkPrice, type StorkPriceResult } from '@/lib/circle/stork'
+import { getPrice, type PriceResult } from '@/lib/oracle'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -66,8 +66,8 @@ const HOOK_ABI = [
 // ---------------------------------------------------------------------------
 
 export type PegAnalysis = {
-  usdcPrice: StorkPriceResult
-  usdtPrice: StorkPriceResult
+  usdcPrice: PriceResult
+  usdtPrice: PriceResult
   pegDeviation: number        // absolute deviation between USDC and USDT
   pegDeviationPercent: string  // human-readable percentage
   pegStatus: 'tight' | 'normal' | 'stressed' | 'depegged'
@@ -115,12 +115,12 @@ const publicClient = createPublicClient({
 })
 
 /**
- * Analyze the USDC/USDT peg stability using Stork oracle price feeds.
+ * Analyze the USDC/USDT peg stability using Chainlink (primary) and Stork (fallback) oracles.
  */
 export async function analyzePegStability(): Promise<PegAnalysis> {
   const [usdcPrice, usdtPrice] = await Promise.all([
-    getStorkPrice('USDCUSD'),
-    getStorkPrice('USDTUSD'),
+    getPrice('USDC'),
+    getPrice('USDT'),
   ])
 
   const deviation = Math.abs(usdcPrice.price - usdtPrice.price)
@@ -181,7 +181,7 @@ export async function recommendFee(
 
   // Build step-by-step reasoning
   const reasoning: string[] = [
-    `Fetched real-time prices from Stork Oracle: USDC = $${analysis.usdcPrice.price.toFixed(4)}, USDT = $${analysis.usdtPrice.price.toFixed(4)}`,
+    `Fetched real-time prices (Chainlink primary, Stork fallback): USDC = $${analysis.usdcPrice.price.toFixed(4)} (${analysis.usdcPrice.source}), USDT = $${analysis.usdtPrice.price.toFixed(4)} (${analysis.usdtPrice.source})`,
     `Computed peg deviation: |$${analysis.usdcPrice.price.toFixed(4)} - $${analysis.usdtPrice.price.toFixed(4)}| = $${analysis.pegDeviation.toFixed(6)} (${analysis.pegDeviationPercent})`,
     `Peg status: ${analysis.pegStatus.toUpperCase()} — ${getPegStatusExplanation(analysis.pegStatus)}`,
     `Fee tier selection: ${recommendedTier} tier → ${recommended.label} (${recommended.fee} hundredths of a bip)`,

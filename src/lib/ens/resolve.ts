@@ -34,6 +34,7 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
   let autoConsolidate: string | undefined
   let avatar: string | undefined
   let description: string | undefined
+  let yieldVault: string | undefined
 
   // Check offchain store first (free preferences take precedence for token + chain)
   try {
@@ -55,6 +56,7 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
       'com.payagent.autoconsolidate',
       'avatar',
       'description',
+      'yieldroute.vault',
     ] as const
 
     const results = await Promise.all(
@@ -74,6 +76,7 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
     autoConsolidate = results[4]
     avatar = results[5]
     description = results[6]
+    yieldVault = results[7]
   } catch {
     // Text records not set, that's fine
   }
@@ -87,6 +90,7 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
     autoConsolidate,
     avatar,
     description,
+    yieldVault,
   }
 }
 

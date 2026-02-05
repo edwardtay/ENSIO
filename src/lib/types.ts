@@ -45,6 +45,8 @@ export type ENSResolution = {
   avatar?: string
   /** Standard ENS description */
   description?: string
+  /** yieldroute.vault — ERC-4626 vault address for auto-yield deposits */
+  yieldVault?: string
 }
 
 /**
@@ -59,6 +61,21 @@ export type ReceiptTextRecords = {
   'com.payagent.recipient': string
   'com.payagent.timestamp': string
 }
+
+export type TokenBalance = {
+  symbol: string
+  balance: string
+  chain: string
+  usdValue?: string
+}
+
+export type ENSConfig = {
+  preferredToken?: string
+  preferredChain?: string
+  autoConsolidate?: string
+}
+
+export type ExecutionState = 'idle' | 'approving' | 'pending' | 'confirmed' | 'error'
 
 export type Message = {
   id: string

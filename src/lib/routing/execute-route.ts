@@ -19,11 +19,15 @@ import {
   getVaultTokenAddress,
   isVaultToken,
 } from './tokens'
-import {
-  findBridgeRoutes,
-  CIRCLE_CHAIN_IDS,
-} from '@/lib/circle/bridge'
 import { V4_CHAINS, getPairDefaults } from './v4-router'
+
+// CCTP supported chains (for reference - CCTP path disabled for now)
+const CIRCLE_CHAIN_IDS: Record<string, number> = {
+  ethereum: 1,
+  arbitrum: 42161,
+  base: 8453,
+  optimism: 10,
+}
 
 // Ensure LI.FI SDK is configured
 createConfig({ integrator: 'payagent' })
@@ -426,34 +430,11 @@ export async function getTransactionData(
 
 /**
  * Determine if an intent should be routed through Circle CCTP.
- * CCTP is preferred for cross-chain USDC-to-USDC transfers on supported chains.
+ * CCTP path is disabled - using LI.FI for all cross-chain routing.
  */
-async function shouldUseCCTP(intent: ParsedIntent): Promise<boolean> {
-  const fromToken = intent.fromToken?.toUpperCase()
-  const toToken = intent.toToken?.toUpperCase()
-
-  // Only USDC <-> USDC
-  if (fromToken !== 'USDC' || toToken !== 'USDC') return false
-
-  const fromChain = intent.fromChain?.toLowerCase() ?? ''
-  const toChain = intent.toChain?.toLowerCase() ?? ''
-
-  // Must be cross-chain
-  if (!toChain || fromChain === toChain) return false
-
-  // Both chains must be supported by CCTP
-  if (!(fromChain in CIRCLE_CHAIN_IDS) || !(toChain in CIRCLE_CHAIN_IDS)) return false
-
-  // Verify CCTP has a route available
-  const routes = await findBridgeRoutes({
-    fromChain,
-    toChain,
-    amount: intent.amount,
-    fromToken: 'USDC',
-    toToken: 'USDC',
-  })
-
-  return routes.length > 0 && routes[0].id !== 'cctp-error'
+async function shouldUseCCTP(_intent: ParsedIntent): Promise<boolean> {
+  // CCTP path disabled for hackathon - LI.FI handles cross-chain routing
+  return false
 }
 
 /**

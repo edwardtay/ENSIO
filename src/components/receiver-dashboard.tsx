@@ -328,75 +328,41 @@ export function ReceiverDashboard() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
-      {/* Payment Link - Primary CTA */}
-      <Card className="border-[#E4E2DC] bg-white overflow-hidden">
-        <div className="bg-gradient-to-r from-[#1C1B18] to-[#2D2C28] px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-[#9C9B93] text-sm mb-1">Your Payment Link</p>
-              <p className="text-white font-mono text-lg">{ensName}</p>
-            </div>
-            <Button
-              onClick={handleCopy}
-              className="bg-white text-[#1C1B18] hover:bg-[#F8F7F4] font-medium"
-            >
-              {copied ? 'Copied!' : 'Copy Link'}
-            </Button>
-          </div>
+      {/* ENS Header with Status */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-[#1C1B18]">{ensName}</h1>
+          <p className="text-sm text-[#6B6960]">Your AcceptAny configuration</p>
         </div>
-        <CardContent className="p-4">
-          <p className="text-sm text-[#6B6960]">
-            Share this link to receive payments in any token from any chain.
-            Funds auto-convert to USDC{selectedVault && selectedVault.id !== 'none' ? ` and deposit into ${selectedVault.name}` : ''}.
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="border-[#E4E2DC] bg-white">
-          <CardContent className="p-5">
-            <p className="text-sm text-[#6B6960] mb-1">Vault Balance</p>
-            {positionLoading ? (
-              <div className="h-8 w-24 bg-[#F8F7F4] rounded animate-pulse" />
-            ) : (
-              <p className="text-2xl font-semibold text-[#1C1B18]">
-                ${vaultPosition?.assets ?? '0.00'}
-              </p>
-            )}
-            {vaultPosition && parseFloat(vaultPosition.assets) > 0 && (
-              <p className="text-xs text-[#6B6960] mt-1">
-                {vaultPosition.shares} shares
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="border-[#E4E2DC] bg-white">
-          <CardContent className="p-5">
-            <p className="text-sm text-[#6B6960] mb-1">Yield Earned</p>
-            {positionLoading ? (
-              <div className="h-8 w-20 bg-[#F8F7F4] rounded animate-pulse" />
-            ) : (
-              <p className="text-2xl font-semibold text-[#22C55E]">
-                +${vaultPosition?.earned ?? '0.00'}
-              </p>
-            )}
-            {vaultPosition && (
-              <p className="text-xs text-[#6B6960] mt-1">{vaultPosition.apy}% APY</p>
-            )}
-          </CardContent>
-        </Card>
+        {currentVault ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#EDF5F0] border border-[#B7D4C7]">
+            <span className="w-2 h-2 rounded-full bg-[#22C55E]" />
+            <span className="text-xs font-medium text-[#2D6A4F]">ENS Configured</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FFF3E0] border border-[#FFCC80]">
+            <span className="w-2 h-2 rounded-full bg-[#F57C00]" />
+            <span className="text-xs font-medium text-[#E65100]">Not Configured</span>
+          </div>
+        )}
       </div>
 
-      {/* Yield Vault Selection */}
+      {/* Yield Vault Selection - First */}
       <Card className="border-[#E4E2DC] bg-white">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold text-[#1C1B18]">
-            Yield Strategy
-          </CardTitle>
-          <p className="text-sm text-[#6B6960]">
-            Choose where your USDC gets deposited after conversion
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg font-semibold text-[#1C1B18]">
+                Yield Strategy
+              </CardTitle>
+              <p className="text-sm text-[#6B6960]">
+                Saved to your ENS text record
+              </p>
+            </div>
+            {currentVault && !vaultChanged && (
+              <span className="text-xs text-[#22C55E] font-medium">On-chain</span>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {VAULT_OPTIONS.map((vault) => (
@@ -502,11 +468,53 @@ export function ReceiverDashboard() {
             <p className="text-sm text-red-600 mt-2">{saveError}</p>
           )}
 
-          {currentVault && !vaultChanged && (
-            <p className="text-xs text-[#6B6960] text-center mt-2">
-              Currently configured on-chain
-            </p>
-          )}
+        </CardContent>
+      </Card>
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="border-[#E4E2DC] bg-white">
+          <CardContent className="p-5">
+            <p className="text-sm text-[#6B6960] mb-1">Vault Balance</p>
+            {positionLoading ? (
+              <div className="h-8 w-24 bg-[#F8F7F4] rounded animate-pulse" />
+            ) : (
+              <p className="text-2xl font-semibold text-[#1C1B18]">
+                ${vaultPosition?.assets ?? '0.00'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="border-[#E4E2DC] bg-white">
+          <CardContent className="p-5">
+            <p className="text-sm text-[#6B6960] mb-1">Yield Earned</p>
+            {positionLoading ? (
+              <div className="h-8 w-20 bg-[#F8F7F4] rounded animate-pulse" />
+            ) : (
+              <p className="text-2xl font-semibold text-[#22C55E]">
+                +${vaultPosition?.earned ?? '0.00'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Payment Link */}
+      <Card className="border-[#E4E2DC] bg-white">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-[#6B6960] mb-1">Payment Link</p>
+              <p className="font-mono text-[#1C1B18]">{paymentLink}</p>
+            </div>
+            <Button
+              onClick={handleCopy}
+              variant="outline"
+              className="border-[#E4E2DC] hover:bg-[#F8F7F4]"
+            >
+              {copied ? 'Copied!' : 'Copy'}
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

@@ -65,7 +65,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-[#E4E2DC] py-4">
         <div className="max-w-4xl mx-auto px-6 flex items-center justify-between text-xs text-[#9C9B93]">
-          <span>ETHGlobal HackMoney 2026</span>
+          <span>Unaudited. Use at own risk.</span>
           <a
             href="https://github.com/edwardtay/hack-money"
             target="_blank"

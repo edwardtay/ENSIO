@@ -1421,11 +1421,11 @@ export function ReceiverDashboard() {
             </div>
           </button>
 
-          {/* Morpho - Optimized option */}
+          {/* Spark - Higher yield option */}
           <button
-            onClick={() => setSelectedVaultId('gauntlet-prime')}
+            onClick={() => setSelectedVaultId('spark-usdc')}
             className={`w-full p-4 rounded-xl border-2 transition-all cursor-pointer text-left ${
-              selectedVaultId === 'gauntlet-prime'
+              selectedVaultId === 'spark-usdc'
                 ? 'border-[#F59E0B] bg-[#FFFBEB]'
                 : 'border-[#E4E2DC] hover:border-[#C9C7BF]'
             }`}
@@ -1438,12 +1438,12 @@ export function ReceiverDashboard() {
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-[#1C1B18]">Morpho</p>
-                  <p className="text-sm text-[#6B6960]">Higher yield · Gauntlet curated</p>
+                  <p className="font-medium text-[#1C1B18]">Spark</p>
+                  <p className="text-sm text-[#6B6960]">Higher yield · MakerDAO ecosystem</p>
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-[#F59E0B]">{vaultApys['gauntlet-prime'] ?? '~5'}%</p>
+                <p className="font-semibold text-[#F59E0B]">{vaultApys['spark-usdc'] ?? '~5'}%</p>
                 <p className="text-xs text-[#6B6960]">APY</p>
               </div>
             </div>

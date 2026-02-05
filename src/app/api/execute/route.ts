@@ -3,6 +3,7 @@ import { encodeFunctionData } from 'viem'
 import { getTransactionData } from '@/lib/routing/execute-route'
 import { buildSetPreferenceTransaction } from '@/lib/ens/write'
 import { getTokenAddress, getTokenDecimals, CHAIN_MAP } from '@/lib/routing/tokens'
+import { getYieldRouteQuote } from '@/lib/routing/yield-router'
 import type { ParsedIntent } from '@/lib/types'
 
 const ERC20_TRANSFER_ABI = [
@@ -21,12 +22,14 @@ const ERC20_TRANSFER_ABI = [
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { routeId, fromAddress, intent, slippage, ensName } = body as {
+    const { routeId, fromAddress, intent, slippage, ensName, yieldVault, recipient } = body as {
       routeId: string
       fromAddress: string
       intent: ParsedIntent
       slippage?: number
       ensName?: string
+      yieldVault?: string
+      recipient?: string
     }
 
     // ENS preference write — returns resolver multicall tx directly
@@ -80,6 +83,50 @@ export async function POST(req: NextRequest) {
         chainId,
         provider: 'Direct Transfer',
         routeType: 'standard',
+      })
+    }
+
+    // Yield route — LI.FI Contract Calls with atomic vault deposit
+    if (routeId?.startsWith('yield-route')) {
+      if (!yieldVault || !recipient || !intent?.fromToken || !intent?.amount) {
+        return NextResponse.json(
+          { error: 'Missing yieldVault, recipient, fromToken, or amount for yield route' },
+          { status: 400 },
+        )
+      }
+
+      const yieldResult = await getYieldRouteQuote({
+        fromAddress,
+        fromChain: intent.fromChain || 'ethereum',
+        fromToken: intent.fromToken,
+        amount: intent.amount,
+        recipient,
+        vault: yieldVault,
+        slippage,
+      })
+
+      if ('error' in yieldResult) {
+        return NextResponse.json(
+          { error: yieldResult.error },
+          { status: 400 },
+        )
+      }
+
+      const txRequest = yieldResult.quote.transactionRequest
+      if (!txRequest) {
+        return NextResponse.json(
+          { error: 'No transaction request in yield quote' },
+          { status: 500 },
+        )
+      }
+
+      return NextResponse.json({
+        to: txRequest.to,
+        data: txRequest.data,
+        value: txRequest.value?.toString() || '0',
+        chainId: txRequest.chainId,
+        provider: 'LI.FI + YieldRouter',
+        routeType: 'contract-call',
       })
     }
 

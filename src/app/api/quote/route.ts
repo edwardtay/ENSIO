@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { resolveENS, resolveChainAddress } from '@/lib/ens/resolve'
 import { findRoutes } from '@/lib/routing/lifi-router'
 import { findV4Routes } from '@/lib/routing/v4-router'
+import { getYieldRouteQuote, isYieldRouteEnabled } from '@/lib/routing/yield-router'
 import { getTokenAddress, getPreferredChainForToken, CHAIN_MAP, CHAIN_ID_TO_NAME } from '@/lib/routing/tokens'
 import { isRateLimited } from '@/lib/rate-limit'
-import { formatChainAddress } from '@/lib/ens/multichain'
 
 /**
  * POST /api/quote - Get payment routes without NLP parsing
@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     let resolvedAddress = toAddress
     let ensSlippage: number | undefined
     let ensMaxFee: string | undefined
+    let yieldVault: string | undefined
     let toChain = requestedToChain || fromChain
 
     if (toAddress.endsWith('.eth')) {
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
         }
       }
       ensMaxFee = ensResult.maxFee
+      yieldVault = ensResult.yieldVault
     }
 
     // Determine final toToken (use fromToken if not specified, or ENS preference)
@@ -100,12 +102,44 @@ export async function POST(req: NextRequest) {
     // Effective slippage
     const effectiveSlippage = slippage ?? ensSlippage
 
+    let allRoutes: Awaited<ReturnType<typeof findRoutes>> = []
+
+    // --- YIELD ROUTE: If recipient has vault, use Contract Calls for atomic deposit ---
+    if (isYieldRouteEnabled(yieldVault)) {
+      const yieldResult = await getYieldRouteQuote({
+        fromAddress: userAddress,
+        fromChain,
+        fromToken,
+        amount,
+        recipient: resolvedAddress,
+        vault: yieldVault!,
+        slippage: effectiveSlippage,
+      })
+
+      if ('error' in yieldResult) {
+        // Fall back to standard routes if yield route fails
+        console.warn('Yield route failed, falling back to standard:', yieldResult.error)
+      } else {
+        // Yield route found - this bridges + deposits in ONE tx
+        allRoutes = [yieldResult.route]
+
+        return NextResponse.json({
+          routes: allRoutes,
+          resolvedAddress,
+          toChain: 'base', // YieldRouter is always on Base
+          toToken: 'USDC',
+          yieldVault, // Include vault so execute knows to use yield route
+          useYieldRoute: true,
+        })
+      }
+    }
+
+    // --- STANDARD ROUTES: No vault or yield route failed ---
+
     // Same token, same chain = simple transfer (no bridge/swap needed)
     const isSameTokenSameChain =
       fromToken.toUpperCase() === finalToToken.toUpperCase() &&
       fromChain.toLowerCase() === toChain.toLowerCase()
-
-    let allRoutes: Awaited<ReturnType<typeof findRoutes>> = []
 
     if (isSameTokenSameChain) {
       // Direct transfer - no routing needed
@@ -160,6 +194,8 @@ export async function POST(req: NextRequest) {
       resolvedAddress,
       toChain,
       toToken: finalToToken,
+      yieldVault: yieldVault || null,
+      useYieldRoute: false,
     })
   } catch (error: unknown) {
     console.error('Quote API error:', error)

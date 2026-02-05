@@ -15,6 +15,10 @@ export type V4TokenConfig = {
 
 export type V4ChainConfig = {
   hook: Address
+  mevProtectionHook: Address
+  streamingPaymentHook: Address
+  smartVaultHook: Address
+  feeStrategy: Address // 0.1% protocol fee
   universalRouter: Address
   permit2: Address
   poolManager: Address
@@ -30,7 +34,11 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as Address
 
 export const V4_CHAINS: Record<string, V4ChainConfig> = {
   base: {
-    hook: '0xA5Cb63B540D4334F01346F3D4C51d5B2fFf050c0',
+    hook: '0xA5Cb63B540D4334F01346F3D4C51d5B2fFf050c0', // PayAgentHook (dynamic fees)
+    mevProtectionHook: '0x57195827De71E3b59744Cf92F7918f539dD8C0C0',
+    streamingPaymentHook: '0x7BFbd48de8802890444a39ff25B84e10D577C040',
+    smartVaultHook: '0x47b57632bC8D7218773a7f9EF04D2C4B2cBD4040',
+    feeStrategy: '0x29Bf3b390f8c8160667Fc277baA58b61F1CC275b', // 0.1% protocol fee
     universalRouter: '0x6ff5693b99212da76ad316178a184ab56d299b43',
     permit2: '0x000000000022D473030F116dDEE9F6B43aC78BA3',
     poolManager: '0x498581fF718922c3f8e6A244956aF099B2652b2b',
@@ -45,7 +53,11 @@ export const V4_CHAINS: Record<string, V4ChainConfig> = {
   },
   unichain: {
     hook: '0x2204fc852739D04254d3bc97451f905a458910c0',
-    universalRouter: '0x0000000000000000000000000000000000000000', // TBD — update after Unichain Sepolia deploy
+    mevProtectionHook: ZERO_ADDRESS, // Not deployed yet
+    streamingPaymentHook: ZERO_ADDRESS, // Not deployed yet
+    smartVaultHook: ZERO_ADDRESS, // Not deployed yet
+    feeStrategy: ZERO_ADDRESS, // Not deployed yet
+    universalRouter: '0x0000000000000000000000000000000000000000', // TBD
     permit2: '0x000000000022D473030F116dDEE9F6B43aC78BA3',
     poolManager: '0x0000000000000000000000000000000000000000', // TBD
     chainId: 1301,

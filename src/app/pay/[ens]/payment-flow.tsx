@@ -79,6 +79,8 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
   // Quote state
   const [quote, setQuote] = useState<RouteOption | null>(null)
   const [quoteError, setQuoteError] = useState<string | null>(null)
+  const [yieldVault, setYieldVault] = useState<string | null>(null)
+  const [useYieldRoute, setUseYieldRoute] = useState(false)
 
   // Execution state
   const [executionState, setExecutionState] = useState<ExecutionState>('idle')
@@ -109,6 +111,8 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
     if (!amount || parseFloat(amount) <= 0 || !recipientInfo?.address || !address) {
       setQuote(null)
       setQuoteError(null)
+      setYieldVault(null)
+      setUseYieldRoute(false)
       return
     }
 
@@ -145,6 +149,8 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
         const data = await res.json()
         if (data.routes && data.routes.length > 0) {
           setQuote(data.routes[0])
+          setYieldVault(data.yieldVault || null)
+          setUseYieldRoute(data.useYieldRoute || false)
         } else {
           setQuoteError('No routes available')
         }
@@ -190,7 +196,7 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
           routeId: quote.id,
           fromAddress: address,
           intent: {
-            action: 'transfer',
+            action: useYieldRoute ? 'yield' : 'transfer',
             amount,
             fromToken: selectedToken,
             toToken: 'USDC',
@@ -200,6 +206,11 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
           },
           slippage: 0.005,
           ensName,
+          // Yield route params
+          ...(useYieldRoute && yieldVault && {
+            yieldVault,
+            recipient: recipientInfo.address,
+          }),
         }),
       })
 
@@ -240,6 +251,8 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
     switchChainAsync,
     sendTransactionAsync,
     ensName,
+    useYieldRoute,
+    yieldVault,
   ])
 
   if (loading) {
@@ -504,6 +517,14 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
           {/* Quote display */}
           {quote && (
             <div className="rounded-lg bg-[#F8F7F4] p-3 space-y-1">
+              {useYieldRoute && (
+                <div className="flex items-center gap-2 text-sm text-[#2D6A4F] pb-2 mb-2 border-b border-[#E4E2DC]">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <span>Auto-deposits to recipient&apos;s yield vault</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-[#6B6960]">Route</span>
                 <span className="text-[#1C1B18] font-medium">{quote.path}</span>

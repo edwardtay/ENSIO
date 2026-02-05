@@ -284,9 +284,6 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
     )
   }
 
-  const hasYieldVault = recipientInfo.yieldVault &&
-    recipientInfo.yieldVault !== '0x0000000000000000000000000000000000000000'
-
   const isExecuting = executionState !== 'idle' && executionState !== 'error'
   const canExecute = amount && parseFloat(amount) > 0 && quote && !isExecuting
 
@@ -324,26 +321,6 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
         </div>
       )}
 
-      {/* Yield indicator */}
-      {hasYieldVault && (
-        <div className="rounded-xl bg-[#EDF5F0] border border-[#B7D4C7] p-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-[#2D6A4F] flex items-center justify-center flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-white">
-                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-[#2D6A4F]">
-                Yield-enabled recipient
-              </p>
-              <p className="text-xs text-[#2D6A4F]/70 mt-0.5">
-                Funds will be automatically deposited into their yield vault
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Success state */}
       {executionState === 'confirmed' && txHash && (
@@ -619,7 +596,6 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
       {/* Info footer */}
       <p className="text-xs text-center text-[#6B6960]">
         Powered by LI.FI cross-chain routing
-        {hasYieldVault && ' + AcceptAny auto-deposit'}
       </p>
     </div>
   )

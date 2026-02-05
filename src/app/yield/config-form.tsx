@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useAccount } from 'wagmi'
+import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -45,12 +45,16 @@ function useEnsName(address?: string) {
 }
 
 export function ConfigForm() {
-  const { address, isConnected } = useAccount()
+  const { address, isConnected, chainId } = useAccount()
+  const { sendTransactionAsync } = useSendTransaction()
+  const { switchChainAsync } = useSwitchChain()
   const { name: ensName, loading: ensLoading } = useEnsName(address)
   const [selectedVault, setSelectedVault] = useState<string>('')
   const [customVault, setCustomVault] = useState('')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [txHash, setTxHash] = useState<string | null>(null)
 
   // Determine the actual vault address to use
   const vaultAddress = selectedVault === 'custom' ? customVault : selectedVault
@@ -60,14 +64,48 @@ export function ConfigForm() {
 
     setSaving(true)
     setSaved(false)
+    setSaveError(null)
+    setTxHash(null)
 
-    // This will be implemented in Task 11 - ENS Write Integration
-    // For now, show a placeholder message
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    try {
+      // Switch to mainnet if needed (ENS is on mainnet)
+      if (chainId !== 1) {
+        await switchChainAsync({ chainId: 1 })
+      }
 
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
+      // Get transaction data from API
+      const res = await fetch('/api/ens/set-vault', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ensName, vaultAddress }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || 'Failed to prepare transaction')
+      }
+
+      const txData = await res.json()
+
+      // Send transaction
+      const hash = await sendTransactionAsync({
+        to: txData.to as `0x${string}`,
+        data: txData.data as `0x${string}`,
+        value: BigInt(txData.value || 0),
+      })
+
+      setTxHash(hash)
+      setSaved(true)
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : 'Transaction failed'
+      if (/rejected|denied|user refused/i.test(errMsg)) {
+        setSaveError('Transaction was rejected')
+      } else {
+        setSaveError(errMsg)
+      }
+    } finally {
+      setSaving(false)
+    }
   }
 
   if (!isConnected) {
@@ -234,6 +272,30 @@ export function ConfigForm() {
             </div>
           )}
 
+          {/* Success message */}
+          {saved && txHash && (
+            <div className="rounded-lg bg-[#EDF5F0] border border-[#B7D4C7] p-3">
+              <p className="text-sm font-medium text-[#2D6A4F] mb-1">
+                Vault preference saved!
+              </p>
+              <a
+                href={`https://etherscan.io/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-[#2D6A4F]/70 font-mono break-all hover:underline"
+              >
+                View transaction
+              </a>
+            </div>
+          )}
+
+          {/* Error message */}
+          {saveError && (
+            <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+              {saveError}
+            </div>
+          )}
+
           <Button
             className="w-full bg-[#1C1B18] hover:bg-[#2D2C28] text-white"
             disabled={!vaultAddress || saving}
@@ -242,7 +304,7 @@ export function ConfigForm() {
             {saving ? (
               <span className="flex items-center gap-2">
                 <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                Saving...
+                Confirm in wallet...
               </span>
             ) : saved ? (
               <span className="flex items-center gap-2">
@@ -257,7 +319,7 @@ export function ConfigForm() {
           </Button>
 
           <p className="text-xs text-center text-[#6B6960]">
-            This will set the <code className="font-mono bg-[#F8F7F4] px-1 py-0.5 rounded">yieldroute.vault</code> text record on your ENS name
+            This will set the <code className="font-mono bg-[#F8F7F4] px-1 py-0.5 rounded">yieldroute.vault</code> text record on your ENS name (requires mainnet gas)
           </p>
         </CardContent>
       </Card>

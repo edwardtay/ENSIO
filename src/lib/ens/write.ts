@@ -70,3 +70,33 @@ export async function buildSetPreferenceTransaction(
     chainId: 1,
   }
 }
+
+/**
+ * Build transaction data that writes yieldroute.vault text record
+ * on the user's ENS resolver.
+ */
+export async function buildSetYieldVaultTransaction(
+  ensName: string,
+  vaultAddress: string,
+): Promise<{ to: string; data: string; value: string; chainId: number }> {
+  const normalized = normalize(ensName)
+  const node = namehash(normalized)
+
+  const resolverAddress = await client.getEnsResolver({ name: normalized })
+  if (!resolverAddress) {
+    throw new Error(`No resolver found for ${ensName}`)
+  }
+
+  const data = encodeFunctionData({
+    abi: resolverAbi,
+    functionName: 'setText',
+    args: [node, 'yieldroute.vault', vaultAddress],
+  })
+
+  return {
+    to: resolverAddress,
+    data,
+    value: '0',
+    chainId: 1,
+  }
+}

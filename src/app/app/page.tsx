@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
-import { ChatInterface } from '@/components/chat/chat-interface'
+import { ReceiverDashboard } from '@/components/receiver-dashboard'
 
 function useL2PrimaryName(address?: string, chainId?: number) {
   const [name, setName] = useState<string | null>(null)
@@ -35,7 +35,7 @@ export default function AppPage() {
   const l2Name = useL2PrimaryName(address, chainId)
 
   return (
-    <div className="flex flex-col h-screen bg-[#F8F7F4]">
+    <div className="flex flex-col min-h-screen bg-[#F8F7F4]">
       {/* Header */}
       <header className="flex items-center justify-between px-5 sm:px-8 py-3 border-b border-[#E4E2DC] bg-white shrink-0">
         <Link href="/" className="flex items-center gap-2.5 shrink-0 hover:opacity-80 transition-opacity">
@@ -46,7 +46,7 @@ export default function AppPage() {
             </svg>
           </div>
           <span className="text-[15px] font-semibold tracking-tight text-[#1C1B18]">
-            PayAgent
+            YieldRoute
           </span>
         </Link>
 
@@ -135,7 +135,7 @@ export default function AppPage() {
         </ConnectButton.Custom>
       </header>
 
-      <ChatInterface />
+      <ReceiverDashboard />
     </div>
   )
 }

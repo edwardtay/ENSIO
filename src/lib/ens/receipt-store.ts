@@ -70,3 +70,40 @@ export async function getReceipt(txHash: string): Promise<ReceiptTextRecords | n
   if (!entry) return null
   return entry.textRecords
 }
+
+export async function getReceiptsByRecipient(recipientAddress: string): Promise<Array<{
+  txHash: string
+  amount: string
+  token: string
+  chain: string
+  from: string
+  createdAt: string
+}>> {
+  const store = await readStore()
+  const receipts: Array<{
+    txHash: string
+    amount: string
+    token: string
+    chain: string
+    from: string
+    createdAt: string
+  }> = []
+
+  for (const [txHash, entry] of Object.entries(store)) {
+    if (entry.recipient.toLowerCase() === recipientAddress.toLowerCase()) {
+      receipts.push({
+        txHash,
+        amount: entry.amount,
+        token: entry.token,
+        chain: entry.chain,
+        from: entry.from,
+        createdAt: entry.createdAt,
+      })
+    }
+  }
+
+  // Sort by date descending (newest first)
+  return receipts.sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )
+}

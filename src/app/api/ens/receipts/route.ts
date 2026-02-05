@@ -1,6 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { storeReceipt } from '@/lib/ens/receipt-store'
+import { storeReceipt, getReceiptsByRecipient } from '@/lib/ens/receipt-store'
 import { generateReceiptSubname } from '@/lib/ens/receipts'
+
+export async function GET(req: NextRequest) {
+  const recipient = req.nextUrl.searchParams.get('recipient')
+  if (!recipient) {
+    return NextResponse.json({ error: 'Missing recipient parameter' }, { status: 400 })
+  }
+
+  try {
+    const receipts = await getReceiptsByRecipient(recipient)
+    return NextResponse.json({ receipts })
+  } catch (error: unknown) {
+    console.error('Receipt fetch error:', error)
+    const message = error instanceof Error ? error.message : 'Failed to fetch receipts'
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {

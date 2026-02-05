@@ -982,7 +982,9 @@ export function ReceiverDashboard() {
               <div>
                 <p className="font-medium text-[#1C1B18]">Payments auto-convert to USDC</p>
                 <p className="text-sm text-[#6B6960]">
-                  {currentVault ? (
+                  {prefsLoading ? (
+                    <span className="inline-block h-4 w-32 bg-[#E4E2DC] rounded animate-pulse" />
+                  ) : currentVault || currentStrategy ? (
                     <>Earning yield via <span className="text-[#22C55E] font-medium">{currentStrategyDisplay}</span></>
                   ) : (
                     <>Will earn ~4% APY once configured</>

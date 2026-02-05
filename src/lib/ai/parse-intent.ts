@@ -1,7 +1,14 @@
 import Groq from 'groq-sdk'
 import { type ParsedIntent } from '@/lib/types'
 
-const client = new Groq({ apiKey: process.env.GROQ_API_KEY })
+// Lazy-init to avoid build-time errors when env var is missing
+let _client: Groq | null = null
+function getClient(): Groq {
+  if (!_client) {
+    _client = new Groq({ apiKey: process.env.GROQ_API_KEY })
+  }
+  return _client
+}
 
 const SYSTEM_PROMPT = `You are PayAgent, an AI payment agent that parses natural language into stablecoin transaction intents.
 
@@ -37,7 +44,7 @@ Rules:
 - Respond ONLY with valid JSON. No markdown fences, no explanation.`
 
 export async function parseIntent(userMessage: string): Promise<ParsedIntent> {
-  const response = await client.chat.completions.create({
+  const response = await getClient().chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     max_tokens: 256,
     messages: [

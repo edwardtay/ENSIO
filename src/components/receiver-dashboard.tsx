@@ -446,7 +446,130 @@ export function ReceiverDashboard() {
         </CardContent>
       </Card>
 
-      {/* Yield Vault Selection - First */}
+      {/* Payment Link - Share this! */}
+      <Card className="border-[#E4E2DC] bg-white">
+        <CardContent className="p-6">
+          <div className="flex gap-6">
+            {/* QR Code - left side */}
+            <div className="p-3 bg-white rounded-xl border border-[#E4E2DC] flex-shrink-0">
+              <QRCodeSVG
+                value={paymentLink}
+                size={120}
+                level="M"
+                includeMargin={false}
+                bgColor="#FFFFFF"
+                fgColor="#1C1B18"
+              />
+            </div>
+
+            {/* Right side - link and actions */}
+            <div className="flex-1 min-w-0 flex flex-col justify-between">
+              {/* Link display */}
+              <div>
+                <p className="text-xs text-[#6B6960] mb-1">Payment Link</p>
+                <p className="font-mono text-sm text-[#1C1B18] truncate">
+                  {paymentLink}
+                </p>
+              </div>
+
+              {/* Amount input */}
+              <div className="flex items-center gap-2 mt-3">
+                <Input
+                  type="number"
+                  placeholder="Amount"
+                  value={requestAmount}
+                  onChange={(e) => setRequestAmount(e.target.value)}
+                  className="h-9 w-28 text-center border-[#E4E2DC] focus:border-[#1C1B18] focus:ring-[#1C1B18]"
+                />
+                <span className="text-sm text-[#6B6960]">USDC</span>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 mt-3">
+                <Button
+                  onClick={handleCopy}
+                  variant="outline"
+                  size="sm"
+                  className="border-[#E4E2DC] hover:bg-[#F8F7F4]"
+                >
+                  {copied ? (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-1.5 text-[#22C55E]">
+                        <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      Copied
+                    </>
+                  ) : (
+                    <>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-1.5">
+                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
+                        <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" strokeWidth="2"/>
+                      </svg>
+                      Copy
+                    </>
+                  )}
+                </Button>
+                <Button
+                  onClick={async () => {
+                    if (navigator.share) {
+                      try {
+                        await navigator.share({
+                          title: `Pay ${ensName}`,
+                          text: 'Pay me with any token on any chain',
+                          url: paymentLink,
+                        })
+                      } catch {
+                        // User cancelled or share failed
+                      }
+                    } else {
+                      handleCopy()
+                    }
+                  }}
+                  size="sm"
+                  className="bg-[#1C1B18] hover:bg-[#2D2C28] text-white"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="mr-1.5">
+                    <path d="M4 12V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    <path d="M16 6L12 2L8 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M12 2V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                  Share
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Stats Row */}
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="border-[#E4E2DC] bg-white">
+          <CardContent className="p-5">
+            <p className="text-sm text-[#6B6960] mb-1">Vault Balance</p>
+            {positionLoading ? (
+              <div className="h-8 w-24 bg-[#F8F7F4] rounded animate-pulse" />
+            ) : (
+              <p className="text-2xl font-semibold text-[#1C1B18]">
+                ${vaultPosition?.assets ?? '0.00'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+        <Card className="border-[#E4E2DC] bg-white">
+          <CardContent className="p-5">
+            <p className="text-sm text-[#6B6960] mb-1">Yield Earned</p>
+            {positionLoading ? (
+              <div className="h-8 w-20 bg-[#F8F7F4] rounded animate-pulse" />
+            ) : (
+              <p className="text-2xl font-semibold text-[#22C55E]">
+                +${vaultPosition?.earned ?? '0.00'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Yield Vault Selection */}
       <Card className="border-[#E4E2DC] bg-white">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
@@ -594,118 +717,6 @@ export function ReceiverDashboard() {
             <p className="text-sm text-red-600 mt-2">{saveError}</p>
           )}
 
-        </CardContent>
-      </Card>
-
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="border-[#E4E2DC] bg-white">
-          <CardContent className="p-5">
-            <p className="text-sm text-[#6B6960] mb-1">Vault Balance</p>
-            {positionLoading ? (
-              <div className="h-8 w-24 bg-[#F8F7F4] rounded animate-pulse" />
-            ) : (
-              <p className="text-2xl font-semibold text-[#1C1B18]">
-                ${vaultPosition?.assets ?? '0.00'}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card className="border-[#E4E2DC] bg-white">
-          <CardContent className="p-5">
-            <p className="text-sm text-[#6B6960] mb-1">Yield Earned</p>
-            {positionLoading ? (
-              <div className="h-8 w-20 bg-[#F8F7F4] rounded animate-pulse" />
-            ) : (
-              <p className="text-2xl font-semibold text-[#22C55E]">
-                +${vaultPosition?.earned ?? '0.00'}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Payment Link */}
-      <Card className="border-[#E4E2DC] bg-white">
-        <CardContent className="p-6">
-          <div className="flex flex-col items-center">
-            {/* QR Code */}
-            <div className="p-3 bg-white rounded-xl border border-[#E4E2DC]">
-              <QRCodeSVG
-                value={paymentLink}
-                size={140}
-                level="M"
-                includeMargin={false}
-                bgColor="#FFFFFF"
-                fgColor="#1C1B18"
-              />
-            </div>
-
-            {/* Amount input - compact */}
-            <div className="flex items-center gap-2 mt-4 w-full max-w-[200px]">
-              <Input
-                type="number"
-                placeholder="Amount"
-                value={requestAmount}
-                onChange={(e) => setRequestAmount(e.target.value)}
-                className="h-9 text-center border-[#E4E2DC] focus:border-[#1C1B18] focus:ring-[#1C1B18]"
-              />
-              <span className="text-sm text-[#6B6960] whitespace-nowrap">USDC</span>
-            </div>
-
-            {/* Share buttons - inline */}
-            <div className="flex items-center gap-2 mt-4">
-              <button
-                onClick={handleCopy}
-                className="p-2.5 rounded-lg border border-[#E4E2DC] hover:bg-[#F8F7F4] transition-colors"
-                title="Copy link"
-              >
-                {copied ? (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#22C55E]">
-                    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#6B6960]">
-                    <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2"/>
-                    <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" strokeWidth="2"/>
-                  </svg>
-                )}
-              </button>
-              <a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Pay me with any token\n${paymentLink}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2.5 rounded-lg border border-[#E4E2DC] hover:bg-[#F8F7F4] transition-colors"
-                title="Share on X"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#6B6960]">
-                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" fill="currentColor"/>
-                </svg>
-              </a>
-              <a
-                href={`https://t.me/share/url?url=${encodeURIComponent(paymentLink)}&text=${encodeURIComponent('Pay me with any token')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2.5 rounded-lg border border-[#E4E2DC] hover:bg-[#F8F7F4] transition-colors"
-                title="Share on Telegram"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#6B6960]">
-                  <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM16.64 8.8C16.49 10.38 15.84 14.22 15.51 15.99C15.37 16.74 15.09 16.99 14.83 17.02C14.25 17.07 13.81 16.64 13.25 16.27C12.37 15.69 11.87 15.33 11.02 14.77C10.03 14.12 10.67 13.76 11.24 13.18C11.39 13.03 13.95 10.7 14 10.49C14.0069 10.4582 14.006 10.4252 13.9973 10.3938C13.9886 10.3624 13.972 10.3337 13.96 10.31C13.89 10.26 13.78 10.28 13.71 10.3C13.61 10.32 12.17 11.26 9.37 13.13C8.97 13.41 8.62 13.55 8.31 13.54C7.96 13.53 7.3 13.35 6.8 13.2C6.19 13.02 5.71 12.92 5.75 12.59C5.77 12.41 6.02 12.24 6.49 12.06C9.51 10.75 11.53 9.89 12.54 9.47C15.41 8.27 15.97 8.07 16.35 8.07C16.43 8.07 16.61 8.09 16.72 8.18C16.81 8.25 16.84 8.35 16.85 8.42C16.84 8.48 16.86 8.68 16.64 8.8Z" fill="currentColor"/>
-                </svg>
-              </a>
-              <a
-                href={`https://wa.me/?text=${encodeURIComponent(`Pay me with any token\n${paymentLink}`)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-2.5 rounded-lg border border-[#E4E2DC] hover:bg-[#F8F7F4] transition-colors"
-                title="Share on WhatsApp"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-[#6B6960]">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" fill="currentColor"/>
-                </svg>
-              </a>
-            </div>
-          </div>
         </CardContent>
       </Card>
 

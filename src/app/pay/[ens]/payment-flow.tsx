@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { OnrampModal } from '@/components/onramp-modal'
+import { useGaslessPayment } from '@/hooks/use-gasless-payment'
 import type { ENSResolution, RouteOption } from '@/lib/types'
+import type { Address } from 'viem'
 
 interface Props {
   ensName: string
@@ -116,6 +118,13 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
   // Fiat onramp state
   const [showOnramp, setShowOnramp] = useState(false)
   const [onrampCompleted, setOnrampCompleted] = useState(false)
+
+  // Gasless payment state
+  const [useGasless, setUseGasless] = useState(false)
+  const gaslessPayment = useGaslessPayment()
+
+  // Gasless is only available on Base with USDC
+  const canUseGasless = selectedChain === 'base' && selectedToken === 'USDC'
 
   // Fetch recipient ENS info
   useEffect(() => {
@@ -340,6 +349,32 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
     yieldVault,
     memo,
   ])
+
+  // Execute gasless payment
+  const handleGaslessExecute = useCallback(async () => {
+    if (!address || !recipientInfo?.address || !amount) return
+
+    try {
+      // Convert amount to USDC decimals (6)
+      const amountInDecimals = BigInt(Math.floor(parseFloat(amount) * 1_000_000))
+
+      await gaslessPayment.execute({
+        recipient: recipientInfo.address as Address,
+        amount: amountInDecimals,
+        vault: yieldVault as Address | undefined,
+      })
+
+      // Poll for status
+      const pollStatus = setInterval(async () => {
+        await gaslessPayment.checkStatus()
+        if (gaslessPayment.status === 'success' || gaslessPayment.status === 'error') {
+          clearInterval(pollStatus)
+        }
+      }, 3000)
+    } catch (e) {
+      console.error('Gasless payment failed:', e)
+    }
+  }, [address, recipientInfo?.address, amount, yieldVault, gaslessPayment])
 
   if (loading) {
     return (
@@ -682,6 +717,79 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
             </div>
           )}
 
+          {/* Gasless payment toggle */}
+          {canUseGasless && quote && (
+            <div className="rounded-lg bg-[#F0FFF4] border border-[#9AE6B4] p-3">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#22C55E]">
+                    <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  <div>
+                    <span className="text-sm font-medium text-[#166534]">Pay Gasless</span>
+                    <p className="text-xs text-[#22C55E]">Sign only, no gas fee (~$0.10 deducted)</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={useGasless}
+                  onClick={() => setUseGasless(!useGasless)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    useGasless ? 'bg-[#22C55E]' : 'bg-[#E4E2DC]'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useGasless ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </label>
+            </div>
+          )}
+
+          {/* Gasless payment status */}
+          {useGasless && gaslessPayment.status !== 'idle' && (
+            <div className={`rounded-lg p-3 text-sm ${
+              gaslessPayment.status === 'success'
+                ? 'bg-[#EDF5F0] text-[#2D6A4F]'
+                : gaslessPayment.status === 'error'
+                ? 'bg-red-50 text-red-600'
+                : 'bg-[#F8F7F4] text-[#6B6960]'
+            }`}>
+              {gaslessPayment.status === 'signing' && (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                  Sign the message in your wallet...
+                </span>
+              )}
+              {gaslessPayment.status === 'submitting' && (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                  Submitting to Gelato relayers...
+                </span>
+              )}
+              {gaslessPayment.status === 'pending' && (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
+                  Relayer executing... (Task: {gaslessPayment.taskId?.slice(0, 8)}...)
+                </span>
+              )}
+              {gaslessPayment.status === 'success' && (
+                <span className="flex items-center gap-2">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                  Gasless payment successful!
+                </span>
+              )}
+              {gaslessPayment.status === 'error' && (
+                <span>{gaslessPayment.error || 'Payment failed'}</span>
+              )}
+            </div>
+          )}
+
           {/* Quote error */}
           {quoteError && (
             <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
@@ -746,11 +854,34 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
           ) : (
             <div className="space-y-3">
               <Button
-                className="w-full h-12 bg-[#1C1B18] hover:bg-[#2D2C28] text-white font-medium disabled:opacity-50"
-                disabled={!canExecute}
-                onClick={handleExecute}
+                className={`w-full h-12 font-medium disabled:opacity-50 ${
+                  useGasless
+                    ? 'bg-[#22C55E] hover:bg-[#16A34A] text-white'
+                    : 'bg-[#1C1B18] hover:bg-[#2D2C28] text-white'
+                }`}
+                disabled={!canExecute || (useGasless && gaslessPayment.status !== 'idle' && gaslessPayment.status !== 'error')}
+                onClick={useGasless ? handleGaslessExecute : handleExecute}
               >
-                {executionState === 'quoting' ? (
+                {/* Gasless payment states */}
+                {useGasless && gaslessPayment.status === 'signing' ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    Sign in wallet...
+                  </span>
+                ) : useGasless && gaslessPayment.status === 'submitting' ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    Submitting...
+                  </span>
+                ) : useGasless && gaslessPayment.status === 'pending' ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                    Relayer executing...
+                  </span>
+                ) : useGasless && gaslessPayment.status === 'success' ? (
+                  'Payment sent!'
+                ) : /* Regular payment states */
+                executionState === 'quoting' ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
                     Getting quote...
@@ -773,7 +904,9 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
                 ) : executionState === 'confirmed' ? (
                   'Payment sent!'
                 ) : amount && parseFloat(amount) > 0 ? (
-                  `Pay ${parseFloat(amount) < 0.01 ? amount : parseFloat(amount).toFixed(2)} ${selectedToken}`
+                  useGasless
+                    ? `Pay Gasless ${parseFloat(amount) < 0.01 ? amount : parseFloat(amount).toFixed(2)} ${selectedToken}`
+                    : `Pay ${parseFloat(amount) < 0.01 ? amount : parseFloat(amount).toFixed(2)} ${selectedToken}`
                 ) : (
                   'Enter amount'
                 )}

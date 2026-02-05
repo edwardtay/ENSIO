@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.72.1",
     "@circle-fin/adapter-viem-v2": "^1.4.0",
     "@circle-fin/bridge-kit": "^1.5.0",
+    "@gelatonetwork/relay-sdk": "^5.6.1",
     "@lifi/sdk": "^3.15.4",
     "@openzeppelin/uniswap-hooks": "^1.1.1",
     "@radix-ui/react-scroll-area": "^1.2.10",

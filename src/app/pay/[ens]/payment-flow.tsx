@@ -120,11 +120,16 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
       setQuoteError(null)
 
       try {
-        const res = await fetch('/api/chat', {
+        const res = await fetch('/api/quote', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            message: `send ${amount} ${selectedToken} to ${ensName} on base`,
+            amount,
+            fromToken: selectedToken,
+            toToken: 'USDC',
+            fromChain: selectedChain,
+            toChain: 'base',
+            toAddress: ensName,
             userAddress: address,
             slippage: 0.005,
           }),

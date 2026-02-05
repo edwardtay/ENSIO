@@ -12,14 +12,13 @@ export type RouteOption = {
 }
 
 export type ParsedIntent = {
-  action: 'transfer' | 'swap' | 'deposit' | 'yield' | 'pay_x402' | 'consolidate'
+  action: 'transfer' | 'swap' | 'deposit' | 'yield' | 'consolidate'
   amount: string
   fromToken: string
   toToken: string
   toAddress?: string
   toChain?: string
   fromChain?: string
-  url?: string         // for x402
   vaultProtocol?: string // e.g. "aave", "morpho" — used for Composer routes
 }
 

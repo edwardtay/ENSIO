@@ -4,7 +4,7 @@
     "src/app/api/balances/route.ts": {
       "maxDuration": 30
     },
-    "src/app/api/chat/route.ts": {
+    "src/app/api/quote/route.ts": {
       "maxDuration": 30
     },
     "src/app/api/execute/route.ts": {

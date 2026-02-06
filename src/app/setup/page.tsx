@@ -41,10 +41,10 @@ export default function SetupPage() {
       <main className="max-w-4xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold text-[#1C1B18] mb-2">
-            Sponsor Gas for Your Payers
+            Enable Crypto Subscriptions
           </h1>
           <p className="text-[#6B6960]">
-            After one-time Permit2 approval, repeat payers pay $0 gas.
+            Payers sign once. AI agent charges them automatically.
           </p>
         </div>
 
@@ -52,6 +52,31 @@ export default function SetupPage() {
 
         {/* Features */}
         <div className="mt-12 grid md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-xl border border-[#E4E2DC] p-6">
+            <div className="w-10 h-10 rounded-lg bg-[#EDE9FE] flex items-center justify-center mb-4">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                className="text-[#8B5CF6]"
+              >
+                <path
+                  d="M12 2V6M12 18V22M6 12H2M22 12H18"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <h3 className="font-semibold text-[#1C1B18] mb-1">
+              Recurring Payments
+            </h3>
+            <p className="text-sm text-[#6B6960]">
+              Payer signs once. Auto-charged weekly or monthly.
+            </p>
+          </div>
+
           <div className="bg-white rounded-xl border border-[#E4E2DC] p-6">
             <div className="w-10 h-10 rounded-lg bg-[#F0FFF4] flex items-center justify-center mb-4">
               <svg
@@ -71,10 +96,10 @@ export default function SetupPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-[#1C1B18] mb-1">
-              Repeat Payers: $0 Gas
+              AI Agent 24/7
             </h3>
             <p className="text-sm text-[#6B6960]">
-              After Permit2 approval, payers just sign. You cover gas.
+              Monitors subscriptions, executes on schedule, refills tank.
             </p>
           </div>
 
@@ -97,48 +122,10 @@ export default function SetupPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-[#1C1B18] mb-1">
-              Auto Yield
+              Earn While You Wait
             </h3>
             <p className="text-sm text-[#6B6960]">
-              Payments auto-deposit to your chosen yield vault.
-            </p>
-          </div>
-
-          <div className="bg-white rounded-xl border border-[#E4E2DC] p-6">
-            <div className="w-10 h-10 rounded-lg bg-[#EDE9FE] flex items-center justify-center mb-4">
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                className="text-[#8B5CF6]"
-              >
-                <path
-                  d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M13 2.05C17.94 2.56 22 6.81 22 12"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M15 9L22 2M22 2H16M22 2V8"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </div>
-            <h3 className="font-semibold text-[#1C1B18] mb-1">
-              AI Agent
-            </h3>
-            <p className="text-sm text-[#6B6960]">
-              Auto-refills your tank from the cheapest chain.
+              Payments auto-deposit to yield vaults. 4-8% APY.
             </p>
           </div>
         </div>

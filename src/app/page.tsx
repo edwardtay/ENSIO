@@ -55,10 +55,10 @@ export default function HomePage() {
         <div className="max-w-2xl text-center py-12">
           {/* Main headline */}
           <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-4 leading-tight">
-            Repeat customers pay<br /><span className="text-[#22C55E]">$0 gas.</span>
+            Crypto subscriptions.<br /><span className="text-[#22C55E]">Set and forget.</span>
           </h1>
           <p className="text-lg text-[#6B6A63] mb-8 max-w-lg mx-auto">
-            First payment approves Permit2 (one-time). After that, they just sign — you cover gas.
+            Payer signs once. AI agent charges them weekly or monthly. No wallet popups ever again.
           </p>
 
           <ConnectButton.Custom>
@@ -79,34 +79,33 @@ export default function HomePage() {
           <div className="flex items-start justify-center gap-6 mt-12 text-sm max-w-xl mx-auto">
             <div className="flex-1 text-center">
               <div className="w-10 h-10 rounded-full bg-[#1C1B18] text-white flex items-center justify-center mx-auto mb-2 text-sm font-semibold">1</div>
-              <p className="font-semibold text-[#1C1B18]">Fund gas tank</p>
-              <p className="text-[#9C9B93] text-xs mt-1">One-time 0.005 ETH</p>
+              <p className="font-semibold text-[#1C1B18]">Payer subscribes</p>
+              <p className="text-[#9C9B93] text-xs mt-1">Signs once with Permit2</p>
             </div>
             <div className="flex-1 text-center">
               <div className="w-10 h-10 rounded-full bg-[#1C1B18] text-white flex items-center justify-center mx-auto mb-2 text-sm font-semibold">2</div>
-              <p className="font-semibold text-[#1C1B18]">Payer approves once</p>
-              <p className="text-[#9C9B93] text-xs mt-1">Permit2 (first time only)</p>
+              <p className="font-semibold text-[#1C1B18]">AI agent monitors</p>
+              <p className="text-[#9C9B93] text-xs mt-1">Runs 24/7 on schedule</p>
             </div>
             <div className="flex-1 text-center">
               <div className="w-10 h-10 rounded-full bg-[#22C55E] text-white flex items-center justify-center mx-auto mb-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M12 2V6M12 18V22M6 12H2M22 12H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
-              <p className="font-semibold text-[#1C1B18]">Then just sign</p>
-              <p className="text-[#9C9B93] text-xs mt-1">$0 gas forever</p>
+              <p className="font-semibold text-[#1C1B18]">Auto-charges</p>
+              <p className="text-[#9C9B93] text-xs mt-1">Weekly or monthly</p>
             </div>
           </div>
 
-          {/* Secondary benefits */}
+          {/* Use cases */}
           <div className="mt-10 pt-8 border-t border-[#E4E2DC]">
-            <p className="text-xs text-[#9C9B93] mb-3">ALSO INCLUDED</p>
-            <div className="flex items-center justify-center gap-6 text-sm">
-              <span className="text-[#6B6960]">Any token, 9 chains</span>
-              <span className="text-[#6B6960]">·</span>
-              <span className="text-[#6B6960]">Auto-convert to USDC</span>
-              <span className="text-[#6B6960]">·</span>
-              <span className="text-[#22C55E] font-medium">4-8% APY on idle funds</span>
+            <p className="text-xs text-[#9C9B93] mb-4">PERFECT FOR</p>
+            <div className="flex items-center justify-center gap-4 text-sm">
+              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">SaaS billing</span>
+              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Creator memberships</span>
+              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">DAO contributions</span>
+              <span className="px-3 py-1.5 rounded-full bg-[#EDF5F0] text-[#22C55E] font-medium">+ Yield</span>
             </div>
           </div>
         </div>

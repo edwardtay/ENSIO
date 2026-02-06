@@ -31,6 +31,56 @@ type VaultPosition = {
   earned: string
 }
 
+type Subscription = {
+  id: string
+  payer: string
+  receiver: string
+  amount: string
+  frequency: 'weekly' | 'monthly'
+  nextDue: string
+  active: boolean
+}
+
+type AgentLog = {
+  type: string
+  receiver: string
+  details: Record<string, unknown>
+  timestamp: string
+}
+
+function useSubscriptions(address?: string) {
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!address) { setSubscriptions([]); return }
+    setLoading(true)
+    fetch(`/api/agent/cron?action=subscriptions&receiver=${address}`)
+      .then((r) => r.json())
+      .then((data) => setSubscriptions(data.subscriptions ?? []))
+      .catch(() => setSubscriptions([]))
+      .finally(() => setLoading(false))
+  }, [address])
+
+  return { subscriptions, loading }
+}
+
+function useAgentLog() {
+  const [log, setLog] = useState<AgentLog[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/agent/cron?action=log')
+      .then((r) => r.json())
+      .then((data) => setLog(data.log ?? []))
+      .catch(() => setLog([]))
+      .finally(() => setLoading(false))
+  }, [])
+
+  return { log, loading }
+}
+
 function useEnsName(address?: string) {
   const [name, setName] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -124,6 +174,8 @@ export function ReceiverDashboard() {
   const { receipts, loading: receiptsLoading } = useReceipts(address)
   const { position: vaultPosition, loading: positionLoading } = useVaultPosition(currentVault ?? undefined, address)
   const gasTank = useGasTank()
+  const { subscriptions, loading: subsLoading } = useSubscriptions(address)
+  const { log: agentLog } = useAgentLog()
 
   const [showSettings, setShowSettings] = useState(false)
   const [depositAmount, setDepositAmount] = useState('0.005')
@@ -399,6 +451,77 @@ export function ReceiverDashboard() {
             <p className="text-xs text-[#E65100] mt-3 pt-3 border-t border-[#E4E2DC]">
               Gas tank empty - add funds to enable gasless payments
             </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Active Subscriptions */}
+      <Card className="border-[#E4E2DC] bg-white">
+        <CardContent className="p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-semibold text-[#1C1B18]">Subscriptions</h2>
+            <div className="flex items-center gap-2 text-xs text-[#22C55E]">
+              <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
+              AI Agent Active
+            </div>
+          </div>
+          {subsLoading ? (
+            <div className="space-y-2">
+              {[1, 2].map(i => <div key={i} className="h-12 bg-[#F8F7F4] rounded-lg animate-pulse" />)}
+            </div>
+          ) : subscriptions.length === 0 ? (
+            <div className="text-center py-6">
+              <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#F8F7F4] flex items-center justify-center">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" className="text-[#9C9B93]">
+                  <path d="M12 2V6M12 18V22M6 12H2M22 12H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </div>
+              <p className="text-[#6B6960]">No active subscriptions</p>
+              <p className="text-sm text-[#9C9B93] mt-1">Share your link to get recurring payments</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {subscriptions.filter(s => s.active).map((sub) => (
+                <div key={sub.id} className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-[#EDE9FE] flex items-center justify-center">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-[#7C3AED]">
+                        <path d="M12 2V6M12 18V22M6 12H2M22 12H18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-[#1C1B18]">
+                        {sub.payer.slice(0, 6)}...{sub.payer.slice(-4)}
+                      </p>
+                      <p className="text-xs text-[#6B6960]">
+                        {sub.frequency} · Next: {new Date(sub.nextDue).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <p className="font-medium text-[#1C1B18]">${sub.amount}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* Agent activity log */}
+          {agentLog.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-[#E4E2DC]">
+              <p className="text-xs text-[#9C9B93] mb-2">Recent AI Agent Activity</p>
+              <div className="space-y-1">
+                {agentLog.slice(-3).reverse().map((entry, i) => (
+                  <div key={i} className="text-xs text-[#6B6960] flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#22C55E]" />
+                    {entry.type === 'subscription_executed' && 'Processed subscription'}
+                    {entry.type === 'tank_check' && 'Checked gas tank'}
+                    {entry.type === 'tank_low' && 'Low tank alert'}
+                    {entry.type === 'refill_initiated' && 'Initiated refill'}
+                    <span className="text-[#9C9B93]">
+                      {new Date(entry.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

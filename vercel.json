@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/agent/cron",
+      "schedule": "0 * * * *"
+    }
+  ],
   "functions": {
     "src/app/api/balances/route.ts": {
       "maxDuration": 60
@@ -11,6 +17,9 @@
       "maxDuration": 60
     },
     "src/app/api/consolidate/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/agent/cron/route.ts": {
       "maxDuration": 60
     }
   }

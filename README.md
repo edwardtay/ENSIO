@@ -118,17 +118,24 @@ FlowFi uses LI.FI for cross-chain swaps and aggregated routing across 30+ chains
 
 FlowFi includes an autonomous AI agent that monitors gas tanks and executes refills.
 
-**Agent-Executed Transaction (Real):**
-- TX: [0x905a9c5a...73b6838](https://basescan.org/tx/0x905a9c5a75ece7158372b26cc161b30dd4ec17309ef6afabd158f83de73b6838)
-- Action: 0.1 USDC → 0.099 USDT swap on Base
-- Integrator: `flowfi-agent`
-- Triggered via: `/api/agent/cron?action=execute`
+**Agent-Executed Transactions (Real):**
+
+| Action | TX | Via |
+|--------|-----|-----|
+| LI.FI Swap | [0x905a9c5a...](https://basescan.org/tx/0x905a9c5a75ece7158372b26cc161b30dd4ec17309ef6afabd158f83de73b6838) | LI.FI SDK |
+| **V4 Hook Swap** | [0x4be074c2...](https://basescan.org/tx/0x4be074c227df8c2806c2939f11cf9ff4e89e8316498333716b614bd10f9f846b) | Uniswap v4 + PayAgentHook |
+
+**V4 Swap Details:**
+- Universal Router: `0x6ff5693b99212da76ad316178a184ab56d299b43`
+- Hook: PayAgentHook (`0xA5Cb63B540D4334F01346F3D4C51d5B2fFf050c0`)
+- Hook events in logs: `SwapProcessed`, `VolumeUpdated`
+- Triggered via: `/api/agent/cron?action=v4swap`
 
 **Agent Capabilities:**
-- Monitor receiver gas tanks across chains
+- Monitor receiver gas tanks across chains (monitor→decide→act loop)
 - Auto-refill low tanks via LI.FI bridging
 - Execute scheduled subscription payments
-- Route swaps through Uniswap v4 PayAgentHook
+- **Route swaps through Uniswap v4 PayAgentHook** (proven on-chain)
 
 ## ENS Subdomains for Invoices
 

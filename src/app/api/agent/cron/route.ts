@@ -22,6 +22,8 @@ import {
 import { privateKeyToAccount } from 'viem/accounts'
 import { base, mainnet, arbitrum, optimism } from 'viem/chains'
 import { createConfig, getQuote } from '@lifi/sdk'
+import { getTransactionData } from '@/lib/routing/execute-route'
+import type { ParsedIntent } from '@/lib/types'
 
 // Initialize LI.FI SDK
 createConfig({ integrator: 'flowfi-agent' })
@@ -495,7 +497,7 @@ export async function GET(request: Request) {
     })
   }
 
-  // Execute a swap through Uniswap v4 PayAgentHook (for Base→Base swaps)
+  // Execute a REAL swap through Uniswap v4 PayAgentHook (for Base→Base swaps)
   if (action === 'v4swap') {
     if (!AGENT_PRIVATE_KEY) {
       return NextResponse.json(
@@ -504,83 +506,138 @@ export async function GET(request: Request) {
       )
     }
 
-    const account = privateKeyToAccount(AGENT_PRIVATE_KEY)
-    const agentAddress = account.address
+    try {
+      const account = privateKeyToAccount(AGENT_PRIVATE_KEY)
+      const agentAddress = account.address
 
-    // V4 swap parameters
-    const swapAmount = parseUnits('0.1', 6) // 0.1 USDC
+      // Build the swap intent
+      const swapIntent: ParsedIntent = {
+        action: 'swap',
+        fromToken: 'USDC',
+        toToken: 'USDT',
+        amount: '0.05', // Small amount for demo
+        fromChain: 'base',
+        toChain: 'base',
+      }
 
-    // Build the v4 swap route
-    const v4SwapRoute = {
-      poolManager: V4_CONFIG.poolManager,
-      hook: V4_CONFIG.payAgentHook,
-      poolId: V4_CONFIG.poolId,
-      poolKey: {
-        currency0: TOKENS.USDC_BASE,
-        currency1: '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2', // USDT
-        fee: '0x800000', // DYNAMIC_FEE_FLAG
-        tickSpacing: 1,
-        hooks: V4_CONFIG.payAgentHook,
-      },
-      swapParams: {
-        zeroForOne: true, // USDC → USDT
-        amountSpecified: swapAmount.toString(),
-        sqrtPriceLimitX96: '4295128740', // TickMath.MIN_SQRT_PRICE + 1
-      },
+      log({
+        type: 'v4_swap',
+        receiver: agentAddress,
+        details: {
+          action: 'v4_swap_building',
+          intent: swapIntent,
+        },
+      })
+
+      // Get V4 transaction data (handles approvals automatically)
+      const txData = await getTransactionData(
+        swapIntent,
+        agentAddress,
+        0.01, // 1% slippage
+        'Uniswap v4' // Force v4 route
+      )
+
+      // Create wallet client
+      const walletClient = createWalletClient({
+        account,
+        chain: base,
+        transport: http(),
+      })
+
+      log({
+        type: 'v4_swap',
+        receiver: agentAddress,
+        details: {
+          action: 'v4_swap_executing',
+          to: txData.to,
+          provider: txData.provider,
+          hookAddress: txData.hookAddress,
+        },
+      })
+
+      // Execute the transaction
+      const txHash = await walletClient.sendTransaction({
+        to: txData.to as Address,
+        data: txData.data as `0x${string}`,
+        value: BigInt(txData.value || '0'),
+      })
+
+      // Wait for confirmation
+      const publicClient = createPublicClient({ chain: base, transport: http() })
+      const receipt = await publicClient.waitForTransactionReceipt({
+        hash: txHash,
+        timeout: 60000,
+      })
+
+      const success = receipt.status === 'success'
+
+      log({
+        type: 'v4_swap',
+        receiver: agentAddress,
+        details: {
+          action: success ? 'v4_swap_success' : 'v4_swap_failed',
+          txHash,
+          blockNumber: receipt.blockNumber.toString(),
+          gasUsed: receipt.gasUsed.toString(),
+        },
+      })
+
+      return NextResponse.json({
+        success,
+        v4Swap: {
+          agent: agentAddress,
+          action: 'USDC → USDT via Uniswap v4 + PayAgentHook',
+          amount: '0.05 USDC',
+          txHash,
+          explorerUrl: `https://basescan.org/tx/${txHash}`,
+          blockNumber: receipt.blockNumber.toString(),
+          gasUsed: receipt.gasUsed.toString(),
+          status: success ? 'confirmed' : 'failed',
+          provider: txData.provider,
+        },
+        integrations: {
+          uniswapV4: {
+            used: true,
+            poolManager: V4_CONFIG.poolManager,
+            hook: V4_CONFIG.payAgentHook,
+            hookAddress: txData.hookAddress,
+            universalRouter: txData.to,
+            realExecution: true,
+          },
+        },
+        proof: {
+          agentExecuted: true,
+          throughV4Hook: true,
+          txHash,
+        },
+      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+
+      log({
+        type: 'error',
+        receiver: 'agent',
+        details: {
+          action: 'v4_swap_error',
+          error: errorMsg,
+        },
+      })
+
+      // If it's an approval step, return that info
+      if (errorMsg.includes('Approval')) {
+        return NextResponse.json({
+          success: false,
+          step: 'approval',
+          message: errorMsg,
+          instruction: 'Call this endpoint again to continue after approval',
+        })
+      }
+
+      return NextResponse.json(
+        { error: 'V4 swap failed', details: errorMsg },
+        { status: 500 }
+      )
     }
-
-    // Calculate expected output with dynamic fee
-    const feeRate = 0.0001 // 0.01%
-    const inputAmount = Number(swapAmount) / 1e6
-    const feeAmount = inputAmount * feeRate
-    const expectedOutput = inputAmount - feeAmount
-
-    log({
-      type: 'v4_swap',
-      receiver: agentAddress,
-      details: {
-        action: 'v4_swap_prepared',
-        input: `${inputAmount} USDC`,
-        output: `~${expectedOutput.toFixed(6)} USDT`,
-        fee: `${(feeRate * 100).toFixed(4)}%`,
-        hook: 'PayAgentHook',
-      },
-    })
-
-    return NextResponse.json({
-      success: true,
-      v4Swap: {
-        agent: agentAddress,
-        action: 'USDC → USDT via Uniswap v4 + PayAgentHook',
-        amount: `${inputAmount} USDC`,
-        expectedOutput: `~${expectedOutput.toFixed(6)} USDT`,
-        route: v4SwapRoute,
-        hookFeatures: {
-          dynamicFee: true,
-          currentRate: '0.01%',
-          feeStrategy: 'FixedFeeStrategy',
-          feeStrategyAddress: '0x29Bf3b390f8c8160667Fc277baA58b61F1CC275b',
-        },
-        proofTransaction: {
-          description: 'Previous v4 swap through PayAgentHook',
-          txHash: '0x37fe2adaa33bf41b8c1969dd124ed7672c001c5f06791e58dda50cff0b005f7d',
-          explorerUrl: 'https://basescan.org/tx/0x37fe2adaa33bf41b8c1969dd124ed7672c001c5f06791e58dda50cff0b005f7d',
-        },
-        hookEvents: [
-          'SwapProcessed(poolId, amountIn, newSwapCount)',
-          'VolumeUpdated(poolId, amountIn, newTotalVolume)',
-        ],
-      },
-      integrations: {
-        uniswapV4: {
-          used: true,
-          poolManager: V4_CONFIG.poolManager,
-          hook: V4_CONFIG.payAgentHook,
-          poolId: V4_CONFIG.poolId,
-          advantage: 'Dynamic fees via PayAgentHook for agent-driven swaps',
-        },
-      },
-    })
   }
 
   // Execute a real swap (for demo purposes - proves agent can execute)

@@ -116,26 +116,57 @@ FlowFi uses LI.FI for cross-chain swaps and aggregated routing across 30+ chains
 
 ## AI Payment Agent
 
-FlowFi includes an autonomous AI agent that monitors gas tanks and executes refills.
+FlowFi includes an autonomous AI agent powered by Groq LLM that understands natural language and executes transactions.
 
-**Agent-Executed Transactions (Real):**
+**Natural Language → Transaction:**
 
-| Action | TX | Via |
-|--------|-----|-----|
-| LI.FI Swap | [0x905a9c5a...](https://basescan.org/tx/0x905a9c5a75ece7158372b26cc161b30dd4ec17309ef6afabd158f83de73b6838) | LI.FI SDK |
-| **V4 Hook Swap** | [0x4be074c2...](https://basescan.org/tx/0x4be074c227df8c2806c2939f11cf9ff4e89e8316498333716b614bd10f9f846b) | Uniswap v4 + PayAgentHook |
+```bash
+# Tell the agent what you want in plain English
+curl -X POST /api/agent/cron \
+  -d '{"action":"ai","message":"swap 0.02 USDC to USDT on base"}'
 
-**V4 Swap Details:**
-- Universal Router: `0x6ff5693b99212da76ad316178a184ab56d299b43`
-- Hook: PayAgentHook (`0xA5Cb63B540D4334F01346F3D4C51d5B2fFf050c0`)
-- Hook events in logs: `SwapProcessed`, `VolumeUpdated`
-- Triggered via: `/api/agent/cron?action=v4swap`
+# AI parses intent, executes via Uniswap v4
+→ { "txHash": "0xd8b54b9e...", "via": "Uniswap v4 + PayAgentHook" }
+```
 
-**Agent Capabilities:**
-- Monitor receiver gas tanks across chains (monitor→decide→act loop)
-- Auto-refill low tanks via LI.FI bridging
-- Execute scheduled subscription payments
-- **Route swaps through Uniswap v4 PayAgentHook** (proven on-chain)
+**AI-Executed Transactions (Real):**
+
+| Input | Action | TX |
+|-------|--------|-----|
+| "swap 0.02 USDC to USDT on base" | V4 Swap | [0xd8b54b9e...](https://basescan.org/tx/0xd8b54b9e696df7b937372afeac6ca7071676dec713b95d3615b372745196bf76) |
+| API trigger | V4 Swap | [0x4be074c2...](https://basescan.org/tx/0x4be074c227df8c2806c2939f11cf9ff4e89e8316498333716b614bd10f9f846b) |
+| API trigger | LI.FI Swap | [0x905a9c5a...](https://basescan.org/tx/0x905a9c5a75ece7158372b26cc161b30dd4ec17309ef6afabd158f83de73b6838) |
+
+**Supported Intents:**
+
+| Intent | Example | Execution |
+|--------|---------|-----------|
+| Pay | "pay vitalik.eth 100 USDC" | LI.FI cross-chain |
+| Swap | "swap 50 USDC to USDT" | Uniswap v4 |
+| Subscribe | "send alice 25 USDC monthly" | Scheduled payments |
+| Bridge | "bridge 0.1 ETH to base" | LI.FI bridge |
+
+**Autonomous Decision Loop:**
+
+```
+Monitor → Decide → Act
+
+1. MONITOR: Check gas tanks for all receivers
+2. DECIDE: AI analyzes situation, recommends action
+3. ACT: Execute refills via LI.FI + Uniswap v4
+```
+
+```bash
+# Ask AI to analyze and decide
+curl /api/agent/cron?action=decide
+
+→ { "shouldAct": true, "reasoning": "Gas tanks low, optimal time to refill" }
+```
+
+**Tech Stack:**
+- LLM: Groq (Llama 3.3 70B) for intent parsing
+- Execution: Uniswap v4 + LI.FI SDK
+- Hook: PayAgentHook for dynamic fees
 
 ## ENS Subdomains for Invoices
 

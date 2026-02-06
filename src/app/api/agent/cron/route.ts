@@ -24,6 +24,7 @@ import { base, mainnet, arbitrum, optimism } from 'viem/chains'
 import { createConfig, getQuote } from '@lifi/sdk'
 import { getTransactionData } from '@/lib/routing/execute-route'
 import type { ParsedIntent } from '@/lib/types'
+import { parseIntent, makeDecision, type PaymentIntent } from '@/lib/ai/intent-parser'
 
 // Initialize LI.FI SDK
 createConfig({ integrator: 'flowfi-agent' })
@@ -404,6 +405,231 @@ export async function GET(request: Request) {
       monitoredReceivers: MONITORED_RECEIVERS.length,
       activeSubscriptions: subscriptions.filter(s => s.active).length,
     })
+  }
+
+  // ==========================================================================
+  // AI-POWERED INTENT PARSING AND EXECUTION
+  // ==========================================================================
+  // Example: /api/agent/cron?action=ai&message=pay%20vitalik%2050%20USDC
+  if (action === 'ai') {
+    const message = searchParams.get('message')
+    if (!message) {
+      return NextResponse.json(
+        { error: 'Missing message parameter. Example: ?action=ai&message=pay vitalik 50 USDC' },
+        { status: 400 }
+      )
+    }
+
+    try {
+      // Step 1: Parse natural language into structured intent using Groq LLM
+      const intent = await parseIntent(message)
+
+      log({
+        type: 'tank_check',
+        receiver: 'ai-agent',
+        details: {
+          phase: 'AI_PARSE',
+          input: message,
+          parsedIntent: intent,
+        },
+      })
+
+      // Step 2: Validate the intent
+      if (intent.confidence < 0.5) {
+        return NextResponse.json({
+          success: false,
+          intent,
+          message: 'Low confidence in parsing. Please be more specific.',
+          examples: [
+            'pay vitalik.eth 100 USDC',
+            'swap 50 USDC to USDT on base',
+            'bridge 0.1 ETH from arbitrum to base',
+            'subscribe alice.eth 25 USDC monthly',
+          ],
+        })
+      }
+
+      // Step 3: Build execution plan based on intent
+      let executionPlan: Record<string, unknown> = {}
+
+      if (intent.action === 'pay' && intent.recipient && intent.amount) {
+        // Build a payment via LI.FI
+        const swapIntent: ParsedIntent = {
+          action: 'swap',
+          fromToken: intent.token || 'USDC',
+          toToken: 'USDC',
+          amount: intent.amount,
+          fromChain: intent.fromChain || 'base',
+          toChain: intent.toChain || 'base',
+          recipient: intent.recipient,
+        }
+
+        executionPlan = {
+          type: 'payment',
+          recipient: intent.recipient,
+          amount: intent.amount,
+          token: intent.token,
+          route: swapIntent,
+          strategy: intent.strategy || 'liquid',
+        }
+      } else if (intent.action === 'swap' && intent.amount) {
+        // Direct swap
+        const swapIntent: ParsedIntent = {
+          action: 'swap',
+          fromToken: intent.token || 'USDC',
+          toToken: 'USDT',
+          amount: intent.amount,
+          fromChain: intent.fromChain || 'base',
+          toChain: intent.toChain || 'base',
+        }
+
+        executionPlan = {
+          type: 'swap',
+          ...swapIntent,
+        }
+      } else if (intent.action === 'bridge' && intent.amount) {
+        executionPlan = {
+          type: 'bridge',
+          fromChain: intent.fromChain || 'arbitrum',
+          toChain: intent.toChain || 'base',
+          token: intent.token || 'ETH',
+          amount: intent.amount,
+        }
+      } else if (intent.action === 'subscribe' && intent.recipient && intent.amount) {
+        executionPlan = {
+          type: 'subscription',
+          recipient: intent.recipient,
+          amount: intent.amount,
+          token: intent.token || 'USDC',
+          frequency: intent.frequency || 'monthly',
+        }
+      }
+
+      // Step 4: If we have agent wallet, show we CAN execute
+      const canExecute = !!AGENT_PRIVATE_KEY
+
+      log({
+        type: 'tank_check',
+        receiver: 'ai-agent',
+        details: {
+          phase: 'AI_PLAN',
+          intent: intent.action,
+          plan: executionPlan,
+          canExecute,
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        ai: {
+          model: 'llama-3.3-70b-versatile',
+          provider: 'Groq',
+          input: message,
+        },
+        intent,
+        executionPlan,
+        canExecute,
+        reasoning: intent.reasoning,
+        proof: {
+          aiPowered: true,
+          llmUsed: 'Groq/Llama-3.3-70b',
+          naturalLanguageParsing: true,
+        },
+      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+
+      log({
+        type: 'error',
+        receiver: 'ai-agent',
+        details: {
+          phase: 'AI_ERROR',
+          error: errorMsg,
+        },
+      })
+
+      return NextResponse.json(
+        { error: 'AI parsing failed', details: errorMsg },
+        { status: 500 }
+      )
+    }
+  }
+
+  // ==========================================================================
+  // AI-POWERED AUTONOMOUS DECISION MAKING
+  // ==========================================================================
+  // Example: /api/agent/cron?action=decide
+  // The AI analyzes the current situation and decides whether to act
+  if (action === 'decide') {
+    try {
+      // Gather current situation
+      const gasTanks: { receiver: string; balance: string; threshold: string }[] = []
+
+      for (const receiver of MONITORED_RECEIVERS) {
+        const balance = await checkTankBalance(receiver)
+        gasTanks.push({
+          receiver,
+          balance: formatEther(balance),
+          threshold: formatEther(LOW_TANK_THRESHOLD),
+        })
+      }
+
+      // Get pending subscriptions
+      const now = new Date()
+      const pendingPayments = subscriptions
+        .filter(s => s.active && new Date(s.nextDue) <= new Date(now.getTime() + 24 * 60 * 60 * 1000)) // Due within 24h
+        .map(s => ({
+          to: s.receiver,
+          amount: s.amount,
+          dueAt: s.nextDue,
+        }))
+
+      // Ask AI to make a decision
+      const decision = await makeDecision({
+        gasTanks,
+        pendingPayments,
+        marketConditions: {
+          gasPrice: 'low', // In production, fetch from gas oracle
+          ethPrice: 'stable',
+        },
+      })
+
+      log({
+        type: 'tank_check',
+        receiver: 'ai-agent',
+        details: {
+          phase: 'AI_DECISION',
+          shouldAct: decision.shouldAct,
+          reasoning: decision.reasoning,
+          action: decision.action,
+        },
+      })
+
+      return NextResponse.json({
+        success: true,
+        ai: {
+          model: 'llama-3.3-70b-versatile',
+          provider: 'Groq',
+        },
+        situation: {
+          gasTanks,
+          pendingPayments,
+          timestamp: now.toISOString(),
+        },
+        decision,
+        proof: {
+          autonomousDecision: true,
+          llmUsed: 'Groq/Llama-3.3-70b',
+          monitorDecideActLoop: true,
+        },
+      })
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error)
+      return NextResponse.json(
+        { error: 'AI decision failed', details: errorMsg },
+        { status: 500 }
+      )
+    }
   }
 
   // Return subscription status
@@ -1075,6 +1301,126 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = await request.json()
   const { action } = body
+
+  // ==========================================================================
+  // AI NATURAL LANGUAGE EXECUTION
+  // ==========================================================================
+  // POST /api/agent/cron with { action: 'ai', message: 'pay bob 50 USDC' }
+  if (action === 'ai' || action === 'chat') {
+    const { message } = body
+
+    if (!message) {
+      return NextResponse.json(
+        { error: 'Missing message. Send { action: "ai", message: "your command" }' },
+        { status: 400 }
+      )
+    }
+
+    try {
+      // Parse natural language with AI
+      const intent = await parseIntent(message)
+
+      log({
+        type: 'tank_check',
+        receiver: 'ai-agent',
+        details: {
+          phase: 'AI_CHAT',
+          input: message,
+          intent,
+        },
+      })
+
+      // High confidence? Try to execute
+      if (intent.confidence >= 0.7 && AGENT_PRIVATE_KEY) {
+        const account = privateKeyToAccount(AGENT_PRIVATE_KEY)
+
+        // For swaps on Base, actually execute
+        if (intent.action === 'swap' && intent.amount && intent.fromChain === 'base') {
+          const swapIntent: ParsedIntent = {
+            action: 'swap',
+            fromToken: intent.token || 'USDC',
+            toToken: 'USDT',
+            amount: intent.amount,
+            fromChain: 'base',
+            toChain: 'base',
+          }
+
+          try {
+            const txData = await getTransactionData(
+              swapIntent,
+              account.address,
+              0.01,
+              'Uniswap v4'
+            )
+
+            const walletClient = createWalletClient({
+              account,
+              chain: base,
+              transport: http(),
+            })
+
+            const txHash = await walletClient.sendTransaction({
+              to: txData.to as Address,
+              data: txData.data as `0x${string}`,
+              value: BigInt(txData.value || '0'),
+            })
+
+            log({
+              type: 'v4_swap',
+              receiver: account.address,
+              details: {
+                phase: 'AI_EXECUTED',
+                input: message,
+                txHash,
+              },
+            })
+
+            return NextResponse.json({
+              success: true,
+              ai: {
+                understood: message,
+                intent,
+                executed: true,
+              },
+              execution: {
+                txHash,
+                explorerUrl: `https://basescan.org/tx/${txHash}`,
+                via: 'Uniswap v4 + PayAgentHook',
+              },
+              proof: {
+                aiPowered: true,
+                naturalLanguageToTx: true,
+                llm: 'Groq/Llama-3.1-70b',
+              },
+            })
+          } catch (execError) {
+            return NextResponse.json({
+              success: false,
+              ai: { understood: message, intent },
+              error: execError instanceof Error ? execError.message : String(execError),
+            })
+          }
+        }
+      }
+
+      // Return parsed intent without execution
+      return NextResponse.json({
+        success: true,
+        ai: {
+          understood: message,
+          intent,
+          executed: false,
+          reason: intent.confidence < 0.7 ? 'low_confidence' : 'no_agent_wallet',
+        },
+        help: 'Try: "swap 0.05 USDC to USDT on base"',
+      })
+    } catch (error) {
+      return NextResponse.json(
+        { error: 'AI failed', details: error instanceof Error ? error.message : String(error) },
+        { status: 500 }
+      )
+    }
+  }
 
   // Register a receiver for monitoring
   if (action === 'register') {

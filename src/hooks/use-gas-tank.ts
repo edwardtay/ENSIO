@@ -10,8 +10,8 @@ import {
 import { parseEther, formatEther, type Address } from 'viem'
 import { base } from 'viem/chains'
 
-// GasTankRegistry contract address (to be deployed)
-export const GAS_TANK_REGISTRY = '0x0000000000000000000000000000000000000000' as Address // TODO: Deploy and update
+// GasTankRegistry contract address on Base
+export const GAS_TANK_REGISTRY = '0xB3ce7C226BF75B470B916C2385bB5FF714c3D757' as Address
 
 const GAS_TANK_ABI = [
   {

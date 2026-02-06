@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { OnrampModal } from '@/components/onramp-modal'
-import { useGaslessPayment } from '@/hooks/use-gasless-payment'
+import { useGasTankPayment } from '@/hooks/use-gas-tank-payment'
 import type { ENSResolution, RouteOption } from '@/lib/types'
 import type { Address } from 'viem'
 
@@ -120,11 +120,12 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
   const [onrampCompleted, setOnrampCompleted] = useState(false)
 
   // Gasless payment state
-  const [useGasless, setUseGasless] = useState(false)
-  const gaslessPayment = useGaslessPayment()
+  // Gas tank payment (receiver pays gas, payer signs free)
+  const [useGasTank, setUseGasTank] = useState(false)
+  const gasTankPayment = useGasTankPayment()
 
-  // Gasless is only available on Base with USDC
-  const canUseGasless = selectedChain === 'base' && selectedToken === 'USDC'
+  // Gas tank payments available on Base with USDC when receiver has tank balance
+  const canUseGasTank = selectedChain === 'base' && selectedToken === 'USDC'
 
   // Fetch recipient ENS info
   useEffect(() => {
@@ -350,19 +351,15 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
     memo,
   ])
 
-  // Poll for gasless payment status
+  // Check if receiver can accept gas tank payments
   useEffect(() => {
-    if (gaslessPayment.status !== 'pending' || !gaslessPayment.taskId) return
+    if (recipientInfo?.address && canUseGasTank) {
+      gasTankPayment.checkReceiver(recipientInfo.address as Address)
+    }
+  }, [recipientInfo?.address, canUseGasTank, gasTankPayment.checkReceiver])
 
-    const pollStatus = setInterval(async () => {
-      await gaslessPayment.checkStatus()
-    }, 3000)
-
-    return () => clearInterval(pollStatus)
-  }, [gaslessPayment.status, gaslessPayment.taskId, gaslessPayment.checkStatus])
-
-  // Execute gasless payment
-  const handleGaslessExecute = useCallback(async () => {
+  // Execute gas tank payment (receiver pays gas, payer just signs)
+  const handleGasTankExecute = useCallback(async () => {
     if (!address || !recipientInfo?.address || !amount) return
 
     try {
@@ -372,16 +369,15 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
       // Only pass vault if yield route is enabled
       const vaultAddress = useYieldRoute && yieldVault ? yieldVault as Address : undefined
 
-      await gaslessPayment.execute({
-        recipient: recipientInfo.address as Address,
+      await gasTankPayment.executePayment({
+        receiver: recipientInfo.address as Address,
         amount: amountInDecimals,
         vault: vaultAddress,
       })
     } catch (e) {
-      console.error('Gasless payment failed:', e)
-      // Error is already set in the hook, will display in UI
+      console.error('Gas tank payment failed:', e)
     }
-  }, [address, recipientInfo?.address, amount, yieldVault, useYieldRoute, gaslessPayment])
+  }, [address, recipientInfo?.address, amount, yieldVault, useYieldRoute, gasTankPayment])
 
   if (loading) {
     return (
@@ -724,8 +720,8 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
             </div>
           )}
 
-          {/* Gasless payment toggle */}
-          {canUseGasless && quote && (
+          {/* Gas tank payment toggle */}
+          {canUseGasTank && quote && gasTankPayment.canReceiverAccept && (
             <div className="rounded-lg bg-[#F0FFF4] border border-[#9AE6B4] p-3">
               <label className="flex items-center justify-between cursor-pointer">
                 <div className="flex items-center gap-2">
@@ -733,22 +729,22 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
                     <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
                   <div>
-                    <span className="text-sm font-medium text-[#166534]">Pay Gasless</span>
-                    <p className="text-xs text-[#22C55E]">Sign only, no gas fee (~$0.10 deducted)</p>
+                    <span className="text-sm font-medium text-[#166534]">Pay $0 Gas</span>
+                    <p className="text-xs text-[#22C55E]">Just sign - receiver covers gas</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={useGasless}
-                  onClick={() => setUseGasless(!useGasless)}
+                  aria-checked={useGasTank}
+                  onClick={() => setUseGasTank(!useGasTank)}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    useGasless ? 'bg-[#22C55E]' : 'bg-[#E4E2DC]'
+                    useGasTank ? 'bg-[#22C55E]' : 'bg-[#E4E2DC]'
                   }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      useGasless ? 'translate-x-6' : 'translate-x-1'
+                      useGasTank ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
@@ -756,43 +752,43 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
             </div>
           )}
 
-          {/* Gasless payment status */}
-          {useGasless && gaslessPayment.status !== 'idle' && (
+          {/* Gas tank payment status */}
+          {useGasTank && gasTankPayment.status !== 'idle' && (
             <div className={`rounded-lg p-3 text-sm ${
-              gaslessPayment.status === 'success'
+              gasTankPayment.status === 'success'
                 ? 'bg-[#EDF5F0] text-[#2D6A4F]'
-                : gaslessPayment.status === 'error'
+                : gasTankPayment.status === 'error'
                 ? 'bg-red-50 text-red-600'
                 : 'bg-[#F8F7F4] text-[#6B6960]'
             }`}>
-              {gaslessPayment.status === 'signing' && (
+              {gasTankPayment.status === 'checking' && (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-                  Sign the message in your wallet...
+                  Checking receiver&apos;s gas tank...
                 </span>
               )}
-              {gaslessPayment.status === 'submitting' && (
+              {gasTankPayment.status === 'signing' && (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-                  Submitting to Gelato relayers...
+                  Sign the permit in your wallet (free, no gas)...
                 </span>
               )}
-              {gaslessPayment.status === 'pending' && (
+              {gasTankPayment.status === 'executing' && (
                 <span className="flex items-center gap-2">
                   <span className="animate-spin w-4 h-4 border-2 border-current border-t-transparent rounded-full" />
-                  Relayer executing... (Task: {gaslessPayment.taskId?.slice(0, 8)}...)
+                  Executing payment (gas from receiver&apos;s tank)...
                 </span>
               )}
-              {gaslessPayment.status === 'success' && (
+              {gasTankPayment.status === 'success' && (
                 <span className="flex items-center gap-2">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                     <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
-                  Gasless payment successful!
+                  Payment successful! You paid $0 gas.
                 </span>
               )}
-              {gaslessPayment.status === 'error' && (
-                <span>{gaslessPayment.error || 'Payment failed'}</span>
+              {gasTankPayment.status === 'error' && (
+                <span>{gasTankPayment.error || 'Payment failed'}</span>
               )}
             </div>
           )}
@@ -862,31 +858,26 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
             <div className="space-y-3">
               <Button
                 className={`w-full h-12 font-medium disabled:opacity-50 ${
-                  useGasless
+                  useGasTank
                     ? 'bg-[#22C55E] hover:bg-[#16A34A] text-white'
                     : 'bg-[#1C1B18] hover:bg-[#2D2C28] text-white'
                 }`}
-                disabled={!canExecute || (useGasless && gaslessPayment.status !== 'idle' && gaslessPayment.status !== 'error')}
-                onClick={useGasless ? handleGaslessExecute : handleExecute}
+                disabled={!canExecute || (useGasTank && gasTankPayment.status !== 'idle' && gasTankPayment.status !== 'error')}
+                onClick={useGasTank ? handleGasTankExecute : handleExecute}
               >
-                {/* Gasless payment states */}
-                {useGasless && gaslessPayment.status === 'signing' ? (
+                {/* Gas tank payment states */}
+                {useGasTank && gasTankPayment.status === 'signing' ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                    Sign in wallet...
+                    Sign permit (free)...
                   </span>
-                ) : useGasless && gaslessPayment.status === 'submitting' ? (
+                ) : useGasTank && gasTankPayment.status === 'executing' ? (
                   <span className="flex items-center gap-2">
                     <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                    Submitting...
+                    Executing...
                   </span>
-                ) : useGasless && gaslessPayment.status === 'pending' ? (
-                  <span className="flex items-center gap-2">
-                    <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                    Relayer executing...
-                  </span>
-                ) : useGasless && gaslessPayment.status === 'success' ? (
-                  'Payment sent!'
+                ) : useGasTank && gasTankPayment.status === 'success' ? (
+                  'Paid $0 gas!'
                 ) : /* Regular payment states */
                 executionState === 'quoting' ? (
                   <span className="flex items-center gap-2">
@@ -911,8 +902,8 @@ export function PaymentFlow({ ensName, prefilledAmount, prefilledToken }: Props)
                 ) : executionState === 'confirmed' ? (
                   'Payment sent!'
                 ) : amount && parseFloat(amount) > 0 ? (
-                  useGasless
-                    ? `Pay Gasless ${parseFloat(amount) < 0.01 ? amount : parseFloat(amount).toFixed(2)} ${selectedToken}`
+                  useGasTank
+                    ? `Pay $0 Gas - ${parseFloat(amount) < 0.01 ? amount : parseFloat(amount).toFixed(2)} ${selectedToken}`
                     : `Pay ${parseFloat(amount) < 0.01 ? amount : parseFloat(amount).toFixed(2)} ${selectedToken}`
                 ) : (
                   'Enter amount'

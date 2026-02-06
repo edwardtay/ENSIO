@@ -5,8 +5,8 @@ import { useAccount, useWalletClient, usePublicClient } from 'wagmi'
 import { type Address, encodeFunctionData } from 'viem'
 import { base } from 'viem/chains'
 
-// GasTankRegistry contract (to be deployed)
-export const GAS_TANK_REGISTRY = '0x0000000000000000000000000000000000000000' as Address
+// GasTankRegistry contract on Base
+export const GAS_TANK_REGISTRY = '0xB3ce7C226BF75B470B916C2385bB5FF714c3D757' as Address
 
 // Permit2 contract
 const PERMIT2 = '0x000000000022D473030F116dDEE9F6B43aC78BA3' as Address

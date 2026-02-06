@@ -10,6 +10,7 @@ import { isRateLimited } from '@/lib/rate-limit'
 import { getStrategy, parseStrategyAllocation, type StrategyAllocation } from '@/lib/strategies'
 import { calculateFee, getNextTierInfo, YIELD_SHARE_RATE } from '@/lib/incentives/fee-tiers'
 import { getVolumeRecord } from '@/lib/incentives/volume-tracker'
+import { isInternalPayment, getNetworkStats } from '@/lib/incentives/network-effects'
 
 // Stablecoins that should prefer Uniswap v4 for same-chain swaps
 const STABLECOINS = new Set(['USDC', 'USDT', 'DAI', 'FRAX', 'LUSD', 'TUSD', 'BUSD'])
@@ -304,12 +305,18 @@ export async function POST(req: NextRequest) {
     // Calculate fee tier for receiver
     const amountNum = parseFloat(amount) || 0
     const volumeRecord = getVolumeRecord(toAddress)
+
+    // Check for internal payment (receiver-to-receiver = 0% fee)
+    const internalCheck = isInternalPayment(userAddress, toAddress)
+
     const feeInfo = calculateFee({
       amountUsd: amountNum,
       monthlyVolumeUsd: volumeRecord.monthlyVolumeUsd,
       receiverHasGasTank: false, // TODO: check GasTankRegistry
+      isInternalPayment: internalCheck.isInternal,
     })
     const tierInfo = getNextTierInfo(volumeRecord.monthlyVolumeUsd)
+    const networkStats = getNetworkStats()
 
     return NextResponse.json({
       routes: allRoutes,

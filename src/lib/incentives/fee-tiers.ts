@@ -84,19 +84,39 @@ export function calculateFee(params: {
   amountUsd: number
   monthlyVolumeUsd: number
   receiverHasGasTank: boolean
+  senderAddress?: string
+  receiverAddress?: string
+  isInternalPayment?: boolean
 }): {
   tier: FeeTier
   feeRate: number
   feeAmount: number
   feePercent: string
   reason: string
+  isInternal?: boolean
+  networkDiscount?: string
 } {
-  const { amountUsd, monthlyVolumeUsd, receiverHasGasTank } = params
+  const { amountUsd, monthlyVolumeUsd, receiverHasGasTank, isInternalPayment } = params
 
-  // Gas tank bonus: 0% fee
+  const tier = getFeeTier(monthlyVolumeUsd)
+
+  // Priority 1: Internal payment (receiver-to-receiver) = 0% fee
+  if (isInternalPayment) {
+    return {
+      tier,
+      feeRate: 0,
+      feeAmount: 0,
+      feePercent: '0%',
+      reason: 'FlowFi-to-FlowFi (0% fee)',
+      isInternal: true,
+      networkDiscount: '100%',
+    }
+  }
+
+  // Priority 2: Gas tank bonus = 0% fee
   if (receiverHasGasTank) {
     return {
-      tier: getFeeTier(monthlyVolumeUsd),
+      tier,
       feeRate: GAS_TANK_FEE_RATE,
       feeAmount: 0,
       feePercent: '0%',
@@ -104,7 +124,7 @@ export function calculateFee(params: {
     }
   }
 
-  const tier = getFeeTier(monthlyVolumeUsd)
+  // Standard tier-based fee
   const feeAmount = (amountUsd * tier.feeRate) / 10_000
 
   return {

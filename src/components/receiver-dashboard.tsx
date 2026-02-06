@@ -228,9 +228,9 @@ export function ReceiverDashboard() {
             <path d="M2 12L12 17L22 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
-        <h1 className="text-3xl font-semibold text-[#1C1B18] mb-3">Accept Any Token</h1>
+        <h1 className="text-3xl font-semibold text-[#1C1B18] mb-3">Get Paid in Crypto</h1>
         <p className="text-[#6B6960] mb-8 text-center max-w-md text-lg">
-          Get paid in any token on any chain. Auto-convert to USDC and earn yield.
+          One link for all clients. Any token, any chain. Earn yield on your balance.
         </p>
         <ConnectButton />
       </div>
@@ -258,7 +258,7 @@ export function ReceiverDashboard() {
         </div>
         <h1 className="text-2xl font-semibold text-[#1C1B18] mb-2">ENS Name Required</h1>
         <p className="text-[#6B6960] mb-6 text-center max-w-sm">
-          Get an ENS name to create your payment link.
+          Your ENS name becomes your payment link. Get one to start receiving payments.
         </p>
         <a
           href="https://app.ens.domains"

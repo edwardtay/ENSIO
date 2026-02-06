@@ -20,10 +20,10 @@ export default function SetupPage() {
       <main className="max-w-4xl mx-auto px-4 py-12">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-semibold text-[#1C1B18] mb-2">
-            Accept Any Token, Receive USDC
+            Set Up Your Payment Link
           </h1>
           <p className="text-[#6B6960]">
-            Set your preferences once. Get paid in any token on any chain.
+            Configure how you receive payments. One-time setup.
           </p>
         </div>
 
@@ -60,7 +60,7 @@ export default function SetupPage() {
               Any Token, Any Chain
             </h3>
             <p className="text-sm text-[#6B6960]">
-              Payers send ETH, USDT, ARB — from 9+ chains. You receive USDC.
+              Clients pay in ETH, USDT, ARB — from 9+ chains. You receive USDC.
             </p>
           </div>
 
@@ -83,10 +83,10 @@ export default function SetupPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-[#1C1B18] mb-1">
-              Auto Yield
+              Earn While You Wait
             </h3>
             <p className="text-sm text-[#6B6960]">
-              Payments auto-deposit to Aave, Morpho, or Renzo. Earn 5-8% APY.
+              Payments auto-deposit to Aave. Earn 5% APY on your balance.
             </p>
           </div>
 
@@ -116,10 +116,10 @@ export default function SetupPage() {
               </svg>
             </div>
             <h3 className="font-semibold text-[#1C1B18] mb-1">
-              ENS Identity
+              ENS is Your Link
             </h3>
             <p className="text-sm text-[#6B6960]">
-              Your ENS name is your payment link. Preferences stored on-chain.
+              alice.eth becomes flowfi.xyz/pay/alice.eth — easy to share.
             </p>
           </div>
         </div>

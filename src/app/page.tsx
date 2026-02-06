@@ -55,10 +55,10 @@ export default function HomePage() {
         <div className="max-w-2xl text-center py-12">
           {/* Main headline */}
           <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-4 leading-tight">
-            Accept any token.<br /><span className="text-[#22C55E]">Receive USDC.</span>
+            One link for all payments.<br /><span className="text-[#22C55E]">Earn yield while you wait.</span>
           </h1>
           <p className="text-lg text-[#6B6A63] mb-8 max-w-lg mx-auto">
-            Get paid in any token on any chain. Auto-convert to USDC and earn yield in your vault.
+            Clients pay in any token, any chain. You receive USDC earning 5% APY.
           </p>
 
           <ConnectButton.Custom>
@@ -67,7 +67,7 @@ export default function HomePage() {
                 onClick={openConnectModal}
                 className="inline-flex items-center gap-2 px-6 py-3 bg-[#1C1B18] text-[#F8F7F4] font-medium rounded-xl hover:bg-[#2D2C28] transition-all cursor-pointer"
               >
-                Create Your Payment Link
+                Create Payment Link
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" className="opacity-60">
                   <path d="M6 4L10 8L6 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
@@ -84,7 +84,7 @@ export default function HomePage() {
             </div>
             <div className="flex-1 text-center">
               <div className="w-10 h-10 rounded-full bg-[#1C1B18] text-white flex items-center justify-center mx-auto mb-2 text-sm font-semibold">2</div>
-              <p className="font-semibold text-[#1C1B18]">Payer sends any token</p>
+              <p className="font-semibold text-[#1C1B18]">Client pays any token</p>
               <p className="text-[#9C9B93] text-xs mt-1">ETH, USDT, ARB — any chain</p>
             </div>
             <div className="flex-1 text-center">
@@ -93,44 +93,44 @@ export default function HomePage() {
                   <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
-              <p className="font-semibold text-[#1C1B18]">You receive USDC</p>
-              <p className="text-[#9C9B93] text-xs mt-1">Auto-deposited to yield vault</p>
+              <p className="font-semibold text-[#1C1B18]">You get USDC + yield</p>
+              <p className="text-[#9C9B93] text-xs mt-1">Auto-deposited to vault</p>
             </div>
           </div>
 
           {/* Example flow */}
           <div className="mt-10 p-6 rounded-2xl bg-white border border-[#E4E2DC] max-w-md mx-auto">
-            <p className="text-xs text-[#9C9B93] mb-4 text-center">EXAMPLE</p>
+            <p className="text-xs text-[#9C9B93] mb-4 text-center">FREELANCER EXAMPLE</p>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[#6B6960]">Payer sends</span>
+                <span className="text-[#6B6960]">Client pays</span>
                 <span className="font-semibold text-[#1C1B18]">0.5 ETH on Arbitrum</span>
               </div>
               <div className="flex items-center gap-2 justify-center text-[#9C9B93]">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M12 5V19M12 19L5 12M12 19L19 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
-                <span className="text-xs">LI.FI routes cross-chain</span>
+                <span className="text-xs">Auto-converted cross-chain</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-[#6B6960]">You receive</span>
-                <span className="font-semibold text-[#22C55E]">~$1,200 USDC on Base</span>
+                <span className="font-semibold text-[#22C55E]">$1,200 USDC on Base</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-[#6B6960]">Deposited to</span>
-                <span className="font-semibold text-[#1C1B18]">Aave vault (5% APY)</span>
+                <span className="text-[#6B6960]">Earning</span>
+                <span className="font-semibold text-[#22C55E]">5% APY in Aave vault</span>
               </div>
             </div>
           </div>
 
           {/* Use cases */}
           <div className="mt-10 pt-8 border-t border-[#E4E2DC]">
-            <p className="text-xs text-[#9C9B93] mb-4">PERFECT FOR</p>
+            <p className="text-xs text-[#9C9B93] mb-4">BUILT FOR</p>
             <div className="flex items-center justify-center gap-4 text-sm flex-wrap">
               <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Freelancers</span>
               <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Creators</span>
-              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">DAOs</span>
-              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Merchants</span>
+              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">Agencies</span>
+              <span className="px-3 py-1.5 rounded-full bg-[#F8F7F4] text-[#1C1B18]">DAO Contributors</span>
             </div>
           </div>
         </div>

@@ -39,7 +39,9 @@ const GAS_TANK_REGISTRY = '0xB3ce7C226BF75B470B916C2385bB5FF714c3D757' as Addres
 // Uniswap v4 on Base
 const V4_CONFIG = {
   poolManager: '0x498581fF718922c3f8e6A244956aF099B2652b2b' as Address,
-  payAgentHook: '0xA5Cb63B540D4334F01346F3D4C51d5B2fFf050c0' as Address,
+  // NEW: Agentic PayAgentHook with agent authorization + fee adjustment
+  payAgentHook: '0x3A68C99c4d496b27D64B193EBFdbAE254e1250C0' as Address,
+  // OLD hook (read-only): '0xA5Cb63B540D4334F01346F3D4C51d5B2fFf050c0'
   poolId: '0xa0d5acc69bb086910e2483f8fc8d6c850bfe0a0240ba280f651984ec2821d169',
   // USDC/USDT pool with dynamic fees
   pools: {

@@ -14,7 +14,7 @@ interface Props {
 const STRATEGIES = [
   { id: 'yield', label: 'Earn Interest', desc: 'Your money grows automatically', apy: '~5% yearly' },
   { id: 'restaking', label: 'Maximize Returns', desc: 'Higher yields with ETH staking', apy: '~8% yearly' },
-  { id: 'liquid', label: 'Keep Cash', desc: 'Instant access, no lock-up', apy: 'No yield' },
+  { id: 'liquid', label: 'Keep as Cash', desc: 'Instant access, no lock-up', apy: 'No interest' },
 ] as const
 
 export function ReceiverSetup({ ensName, onComplete }: Props) {
@@ -70,7 +70,7 @@ export function ReceiverSetup({ ensName, onComplete }: Props) {
           </div>
 
           <p className="text-xs text-[#6B6960]">
-            Payments auto-convert to USDC and deposit to your vault.
+            Payments auto-convert to dollars and go to your account.
           </p>
         </CardContent>
       </Card>
@@ -82,7 +82,7 @@ export function ReceiverSetup({ ensName, onComplete }: Props) {
       <CardContent className="p-6 space-y-5">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-[#1C1B18]">
-            Choose Your Strategy
+            Choose How to Receive
           </h2>
           <p className="text-sm text-[#6B6960] mt-1">
             Where should incoming payments go?
@@ -145,7 +145,7 @@ export function ReceiverSetup({ ensName, onComplete }: Props) {
         </Button>
 
         <p className="text-xs text-center text-[#9C9B93]">
-          Your preferences are saved to your ENS name. Change anytime.
+          Your preferences are saved to your account. Change anytime.
         </p>
       </CardContent>
     </Card>

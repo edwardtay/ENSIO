@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { txHash, amount, token, chain, recipient, from } = await req.json()
+    const { txHash, amount, token, chain, recipient, from, receiverENS } = await req.json()
 
     if (!txHash || !amount || !token || !chain || !recipient || !from) {
       return NextResponse.json(
@@ -29,11 +29,15 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    await storeReceipt(txHash, amount, token, chain, recipient, from)
+    await storeReceipt(txHash, amount, token, chain, recipient, from, receiverENS)
 
     const subname = generateReceiptSubname(txHash)
 
-    return NextResponse.json({ subname })
+    return NextResponse.json({
+      subname,
+      // If ENS name provided, also return the FlowFi CCIP-Read pattern
+      flowFiSubname: receiverENS ? `tx-${txHash.toLowerCase().slice(0, 10)}.payments.${receiverENS}` : undefined,
+    })
   } catch (error: unknown) {
     console.error('Receipt store error:', error)
     const message = error instanceof Error ? error.message : 'Failed to store receipt'

@@ -1,4 +1,4 @@
-import type { ReceiptTextRecords } from '@/lib/types'
+import type { ReceiptTextRecords, FlowFiReceiptTextRecords } from '@/lib/types'
 
 /**
  * Payment receipt subname utilities.
@@ -9,6 +9,47 @@ import type { ReceiptTextRecords } from '@/lib/types'
 
 /** Default parent name under which receipt subnames live. */
 const DEFAULT_PARENT = 'payments.payagent.eth'
+
+/**
+ * Build FlowFi-namespaced text records for CCIP-Read resolution.
+ * Pattern: tx-{shortHash}.payments.{name}.eth
+ *
+ * @returns A plain object whose keys are FlowFi ENS text-record keys.
+ */
+export function buildFlowFiReceiptTextRecords(
+  txHash: string,
+  amount: string,
+  token: string,
+  chain: string,
+  sender: string,
+  timestamp: number,
+): FlowFiReceiptTextRecords {
+  return {
+    'com.flowfi.amount': amount,
+    'com.flowfi.token': token,
+    'com.flowfi.sender': sender,
+    'com.flowfi.chain': chain,
+    'com.flowfi.timestamp': timestamp.toString(),
+    'com.flowfi.txHash': txHash,
+  }
+}
+
+/**
+ * Generate a receipt subname for a specific ENS name.
+ * Pattern: tx-{shortHash}.payments.{name}.eth
+ *
+ * @example
+ *   generateReceiptSubnameForENS('0xabc123def456', 'alice.eth')
+ *   // => "tx-0xabc123.payments.alice.eth"
+ */
+export function generateReceiptSubnameForENS(
+  txHash: string,
+  ensName: string,
+): string {
+  // Use first 8 chars of tx hash (after 0x) for a shorter subname
+  const shortHash = txHash.toLowerCase().slice(0, 10) // 0x + 8 chars
+  return `tx-${shortHash}.payments.${ensName}`
+}
 
 /**
  * Generate a deterministic receipt subname from a transaction hash.

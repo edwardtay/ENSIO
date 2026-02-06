@@ -65,6 +65,32 @@ export type ReceiptTextRecords = {
   'com.payagent.timestamp': string
 }
 
+/**
+ * FlowFi-namespaced text records for payment receipts via CCIP-Read.
+ * Pattern: tx-{shortHash}.payments.{name}.eth
+ */
+export type FlowFiReceiptTextRecords = {
+  'com.flowfi.amount': string
+  'com.flowfi.token': string
+  'com.flowfi.sender': string
+  'com.flowfi.chain': string
+  'com.flowfi.timestamp': string
+  'com.flowfi.txHash': string
+}
+
+/**
+ * Payment receipt structure for storage and retrieval.
+ */
+export type PaymentReceipt = {
+  txHash: string
+  amount: string
+  token: string
+  sender: string
+  receiver: string // ENS name
+  chain: string
+  timestamp: number
+}
+
 export type TokenBalance = {
   symbol: string
   balance: string

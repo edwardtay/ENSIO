@@ -5,7 +5,7 @@ import {
   type Hex,
 } from 'viem'
 import { getPreference, getPreferenceByNode } from '@/lib/ens/store'
-import { getReceipt } from '@/lib/ens/receipt-store'
+import { getReceipt, getFlowFiReceipt } from '@/lib/ens/receipt-store'
 import { signGatewayResponse } from '@/lib/ens/gateway-signer'
 
 /**
@@ -203,9 +203,17 @@ export async function GET(
       }
     } else if (parsed?.type === 'receipt') {
       // Receipt lookup: return text record values from stored receipt
-      const receipt = await getReceipt(parsed.txHash)
-      if (receipt && key in receipt) {
-        resultValue = receipt[key as keyof typeof receipt]
+      // Support both com.payagent.* and com.flowfi.* keys
+      if (key.startsWith('com.flowfi.')) {
+        const flowFiReceipt = await getFlowFiReceipt(parsed.txHash)
+        if (flowFiReceipt && key in flowFiReceipt) {
+          resultValue = flowFiReceipt[key as keyof typeof flowFiReceipt]
+        }
+      } else {
+        const receipt = await getReceipt(parsed.txHash)
+        if (receipt && key in receipt) {
+          resultValue = receipt[key as keyof typeof receipt]
+        }
       }
     } else if (parsed?.type === 'payment-request') {
       // Payment request: dynamically generate values from the name structure

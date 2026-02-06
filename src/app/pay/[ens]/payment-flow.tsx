@@ -431,21 +431,42 @@ export function PaymentFlow({ ensName, prefilledAmount, invoiceId, invoiceMemo }
             <p className="text-sm text-[#6B6960]">Finding your balances...</p>
           )}
 
-          {/* Fee display */}
-          {quote && (
-            <div className="space-y-2 py-2">
+          {/* Fee disclosure */}
+          {quote && amount && parseFloat(amount) > 0 && (
+            <div className="rounded-lg bg-[#F8F7F4] p-3 space-y-2">
               <div className="flex items-center justify-between text-sm">
-                <span className="text-[#6B6960]">Fee</span>
+                <span className="text-[#6B6960]">You send</span>
+                <span className="text-[#1C1B18] font-medium">{parseFloat(amount).toFixed(2)} {selectedToken}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6B6960]">Network + routing</span>
                 <span className="text-[#1C1B18]">{quote.fee}</span>
               </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-[#6B6960]">Protocol fee</span>
+                <span className="text-[#1C1B18]">0.1%</span>
+              </div>
+              <div className="border-t border-[#E4E2DC] pt-2 flex items-center justify-between text-sm">
+                <span className="text-[#6B6960]">{ensName} receives</span>
+                <span className="text-[#22C55E] font-semibold">~{(parseFloat(amount) * 0.999).toFixed(2)} USDC</span>
+              </div>
+              {useYieldRoute && (
+                <div className="flex items-center justify-between text-xs text-[#6B6960]">
+                  <span>Auto-deposited to</span>
+                  <span className="text-[#1C1B18]">Yield vault (~5% APY)</span>
+                </div>
+              )}
               {useV4Route && (
-                <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md bg-[#FF007A]/10 text-[#FF007A] text-xs font-medium">
+                <div className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md bg-[#FF007A]/10 text-[#FF007A] text-xs font-medium mt-1">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                   </svg>
-                  Powered by Uniswap v4
+                  Swapped via Uniswap v4
                 </div>
               )}
+              <p className="text-xs text-[#9C9B93] text-center pt-1">
+                Lower than Coinbase (1.5%) or PayPal (2.9%)
+              </p>
             </div>
           )}
 

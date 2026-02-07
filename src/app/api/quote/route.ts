@@ -113,17 +113,30 @@ export async function POST(req: NextRequest) {
     // Determine final toToken based on strategy
     let finalToToken = toToken || fromToken
     let useYieldRoute = false
+    let strategyWarning: string | undefined
 
     if (ensStrategy === 'restaking') {
       // Restaking strategy receives WETH (converted to ezETH)
       finalToToken = 'WETH'
       toChain = 'base'
     } else if (ensStrategy === 'yield' && yieldVault) {
-      // Yield strategy: use LI.FI Zaps with vault as toToken
-      // This deposits directly to the ERC-4626 vault
-      finalToToken = yieldVault // Vault address as toToken
+      // Validate vault address format
+      if (!yieldVault.startsWith('0x') || yieldVault.length !== 42) {
+        strategyWarning = 'Invalid vault address format, falling back to USDC'
+        finalToToken = 'USDC'
+        toChain = 'base'
+      } else {
+        // Yield strategy: use LI.FI Zaps with vault as toToken
+        // This deposits directly to the ERC-4626 vault
+        finalToToken = yieldVault // Vault address as toToken
+        toChain = 'base'
+        useYieldRoute = true
+      }
+    } else if (ensStrategy === 'yield' && !yieldVault) {
+      // Yield strategy requested but no vault configured
+      strategyWarning = 'Yield strategy set but no vault configured, falling back to USDC'
+      finalToToken = 'USDC'
       toChain = 'base'
-      useYieldRoute = true
     } else {
       // Default to USDC for liquid strategy
       finalToToken = 'USDC'
@@ -318,6 +331,7 @@ export async function POST(req: NextRequest) {
       toChain,
       toToken: finalToToken,
       strategy: ensStrategy || 'liquid',
+      strategyWarning, // Warning if strategy config is incomplete
       useV4Route,
       useYieldRoute,
       yieldVault: useYieldRoute ? yieldVault : undefined,

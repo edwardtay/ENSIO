@@ -75,11 +75,9 @@ const DEMO_ENS_CACHE: Record<string, ENSResolution> = {
 export async function resolveENS(name: string): Promise<ENSResolution> {
   const normalized = normalize(name)
 
-  // Check static demo cache first (instant, no RPC)
+  // Demo cache is now a FALLBACK, not primary
+  // Real ENS records take precedence
   const demoData = DEMO_ENS_CACHE[normalized]
-  if (demoData) {
-    return demoData
-  }
 
   // Check runtime cache
   const cached = ensCache.get(normalized)
@@ -180,6 +178,20 @@ export async function resolveENS(name: string): Promise<ENSResolution> {
     yieldVault,
     strategy,
     strategies,
+  }
+
+  // If no address resolved and we have demo data, use demo as fallback
+  if (!address && demoData) {
+    ensCache.set(normalized, { data: demoData, expires: Date.now() + ENS_CACHE_TTL })
+    return demoData
+  }
+
+  // Merge demo data for missing fields (e.g., vault/strategy not set on-chain yet)
+  if (demoData) {
+    if (!result.yieldVault && demoData.yieldVault) result.yieldVault = demoData.yieldVault
+    if (!result.strategy && demoData.strategy) result.strategy = demoData.strategy
+    if (!result.preferredChain && demoData.preferredChain) result.preferredChain = demoData.preferredChain
+    if (!result.preferredToken && demoData.preferredToken) result.preferredToken = demoData.preferredToken
   }
 
   // Cache the result

@@ -276,8 +276,8 @@ function encodeLifiCallback(
   minShares: bigint
 ): string {
   // lifiCallback(address vault, address recipient, uint256 minShares)
-  // Function selector: keccak256("lifiCallback(address,address,uint256)")[:4]
-  const selector = '0x6e553f65' // Computed selector
+  // Function selector: keccak256("lifiCallback(address,address,uint256)")[:4] = 0x5cd7911a
+  const selector = '0x5cd7911a'
 
   // ABI encode parameters
   const vaultPadded = vault.slice(2).toLowerCase().padStart(64, '0')

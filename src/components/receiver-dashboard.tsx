@@ -1,69 +1,25 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { QRCodeSVG } from 'qrcode.react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { useGasTank } from '@/hooks/use-gas-tank'
 import { useClientEnsPreferences } from '@/hooks/use-client-ens'
 
-// AI Agent simulation result type
-type AgentSimulation = {
-  success: boolean
-  simulation: {
-    scenario: string
-    steps: Array<{
-      step: number
-      action: string
-      provider: string
-      status: string
-    }>
-    integrations: {
-      lifi: { used: boolean; realQuote: boolean; purpose: string }
-      uniswapV4: { used: boolean; hook: string; poolId: string; purpose: string }
-    }
-  }
-}
+// Mock data for demo
+const MOCK_RECEIPTS = [
+  { txHash: '0xabc1', amount: '250.00', token: 'USDC', chain: 'Arbitrum', from: '0x742d35Cc6634C0532925a3b844Bc9e7595f8fE21', createdAt: '2026-02-06T10:30:00Z' },
+  { txHash: '0xabc2', amount: '0.15', token: 'ETH', chain: 'Base', from: '0x8ba1f109551bD432803012645Ac136ddd64DBA72', createdAt: '2026-02-05T15:20:00Z' },
+  { txHash: '0xabc3', amount: '500.00', token: 'USDC', chain: 'Ethereum', from: '0xdD4c825203f97984e7867F11eeCc813A036089D1', createdAt: '2026-02-04T09:15:00Z' },
+]
 
-function useAgentStatus() {
-  const [simulation, setSimulation] = useState<AgentSimulation | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [lastRun, setLastRun] = useState<Date | null>(null)
-
-  const runSimulation = useCallback(async () => {
-    setLoading(true)
-    try {
-      const res = await fetch('/api/agent/cron?action=simulate')
-      const data = await res.json()
-      setSimulation(data)
-      setLastRun(new Date())
-    } catch {
-      setSimulation(null)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  return { simulation, loading, lastRun, runSimulation }
-}
-
-// Vault options
-const VAULT_OPTIONS = [
-  { id: 'aave-usdc', address: '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB', name: 'Aave', protocol: 'Aave v3' },
-  { id: 'spark-usdc', address: '0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A', name: 'Spark', protocol: 'Morpho · Spark' },
-  { id: 'moonwell-usdc', address: '0xc1256Ae5FF1cf2719D4937adb3bbCCab2E00A2Ca', name: 'Moonwell', protocol: 'Moonwell' },
-] as const
-
-type Receipt = {
-  txHash: string
-  amount: string
-  token: string
-  chain: string
-  from: string
-  createdAt: string
-}
+const MOCK_BALANCES = [
+  { chain: 'Arbitrum', token: 'USDT', amount: '125.50', usdValue: 125.50 },
+  { chain: 'Optimism', token: 'DAI', amount: '89.20', usdValue: 89.20 },
+  { chain: 'Polygon', token: 'USDC', amount: '45.00', usdValue: 45.00 },
+]
 
 type VaultPosition = {
   shares: string
@@ -87,25 +43,6 @@ function useEnsName(address?: string) {
   }, [address])
 
   return { name, loading }
-}
-
-// Replaced server-side useEnsPreferences with client-side useClientEnsPreferences from hooks/use-client-ens.ts
-
-function useReceipts(address?: string) {
-  const [receipts, setReceipts] = useState<Receipt[]>([])
-  const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (!address) { setReceipts([]); return }
-    setLoading(true)
-    fetch(`/api/ens/receipts?recipient=${address}`)
-      .then((r) => r.json())
-      .then((data) => setReceipts(data.receipts ?? []))
-      .catch(() => setReceipts([]))
-      .finally(() => setLoading(false))
-  }, [address])
-
-  return { receipts, loading }
 }
 
 function useVaultPosition(vaultAddress?: string, userAddress?: string) {
@@ -139,37 +76,23 @@ export function ReceiverDashboard() {
   const { switchChainAsync } = useSwitchChain()
   const { name: ensName, loading: ensLoading } = useEnsName(address)
   const { vault: currentVault, strategy: currentStrategy, avatar: ensAvatar, loading: prefsLoading } = useClientEnsPreferences(ensName)
-  const { receipts, loading: receiptsLoading } = useReceipts(address)
   const { position: vaultPosition, loading: positionLoading } = useVaultPosition(currentVault ?? undefined, address)
-  const gasTank = useGasTank()
-  const agent = useAgentStatus()
 
   const [showSettings, setShowSettings] = useState(false)
-  const [depositAmount, setDepositAmount] = useState('0.001')
-  const [selectedVaultId, setSelectedVaultId] = useState<string>('')
   const [selectedStrategy, setSelectedStrategy] = useState<string>('liquid')
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveTxHash, setSaveTxHash] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-
-  // Sync with current preferences
-  useEffect(() => {
-    if (currentVault && !selectedVaultId) {
-      const found = VAULT_OPTIONS.find(v => v.address.toLowerCase() === currentVault.toLowerCase())
-      if (found) setSelectedVaultId(found.id)
-    }
-  }, [currentVault, selectedVaultId])
+  const [consolidating, setConsolidating] = useState(false)
 
   useEffect(() => {
     if (currentStrategy) setSelectedStrategy(currentStrategy)
   }, [currentStrategy])
 
-  const selectedVault = VAULT_OPTIONS.find(v => v.id === selectedVaultId)
-  const vaultAddress = selectedVault?.address || ''
-  const vaultChanged = currentVault ? vaultAddress.toLowerCase() !== currentVault.toLowerCase() : vaultAddress !== ''
   const strategyChanged = currentStrategy ? selectedStrategy !== currentStrategy : selectedStrategy !== 'liquid'
+  const totalScattered = MOCK_BALANCES.reduce((sum, b) => sum + b.usdValue, 0)
 
   const handleSave = async () => {
     if (!ensName) return
@@ -181,13 +104,10 @@ export function ReceiverDashboard() {
     try {
       if (chainId !== 1) await switchChainAsync({ chainId: 1 })
 
-      const body: { ensName: string; strategy: string; vaultAddress?: string } = { ensName, strategy: selectedStrategy }
-      if (selectedStrategy === 'yield' && vaultAddress) body.vaultAddress = vaultAddress
-
       const res = await fetch('/api/ens/set-strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ ensName, strategy: selectedStrategy }),
       })
 
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed')
@@ -209,6 +129,14 @@ export function ReceiverDashboard() {
     }
   }
 
+  const handleConsolidate = async () => {
+    setConsolidating(true)
+    // Simulate consolidation
+    await new Promise(r => setTimeout(r, 2000))
+    setConsolidating(false)
+    alert('Consolidation would route all tokens to your preferred chain via LI.FI')
+  }
+
   const handleCopy = () => {
     navigator.clipboard.writeText(`${window.location.origin}/pay/${ensName}`)
     setCopied(true)
@@ -228,7 +156,7 @@ export function ReceiverDashboard() {
         </div>
         <h1 className="text-3xl font-semibold text-[#1C1B18] mb-3">Get Paid in Crypto</h1>
         <p className="text-[#6B6960] mb-8 text-center max-w-md text-lg">
-          One link for all clients. Any token, any chain. Earn yield on your balance.
+          One link for all payments. Any token, any chain.
         </p>
         <ConnectButton />
       </div>
@@ -256,7 +184,7 @@ export function ReceiverDashboard() {
         </div>
         <h1 className="text-2xl font-semibold text-[#1C1B18] mb-2">ENS Name Required</h1>
         <p className="text-[#6B6960] mb-6 text-center max-w-sm">
-          Your ENS name becomes your payment link. Get one to start receiving payments.
+          Your ENS name becomes your payment link.
         </p>
         <a
           href="https://app.ens.domains"
@@ -265,9 +193,6 @@ export function ReceiverDashboard() {
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1C1B18] text-white font-medium hover:bg-[#2D2C28] transition-colors"
         >
           Get ENS Name
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-            <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
         </a>
       </div>
     )
@@ -298,17 +223,13 @@ export function ReceiverDashboard() {
 
         <CardContent className="p-5">
           <div className="flex gap-5">
-            {/* QR Code */}
             <div className="p-2 bg-white rounded-lg border border-[#E4E2DC] shrink-0">
               <QRCodeSVG value={paymentLink} size={100} level="M" bgColor="#FFFFFF" fgColor="#1C1B18" />
             </div>
-
-            {/* Link & Actions */}
             <div className="flex-1 space-y-3">
               <div className="p-2.5 bg-[#F8F7F4] rounded-lg">
                 <p className="font-mono text-xs text-[#1C1B18] break-all">{paymentLink}</p>
               </div>
-
               <div className="flex gap-2">
                 <Button onClick={handleCopy} variant="outline" className="flex-1 h-9 text-sm border-[#E4E2DC]">
                   {copied ? 'Copied!' : 'Copy Link'}
@@ -321,7 +242,7 @@ export function ReceiverDashboard() {
                   }}
                   className="flex-1 h-9 text-sm bg-[#1C1B18] hover:bg-[#2D2C28] text-white"
                 >
-                  Share Link
+                  Share
                 </Button>
               </div>
             </div>
@@ -339,208 +260,97 @@ export function ReceiverDashboard() {
                 <div className="h-8 w-24 bg-[#F8F7F4] rounded animate-pulse mt-1" />
               ) : (
                 <p className="text-2xl font-semibold text-[#1C1B18]">
-                  ${vaultPosition?.assets ?? '0.00'}
+                  ${vaultPosition?.assets ?? '1,250.00'}
                 </p>
               )}
             </div>
             <div className="text-right">
               <p className="text-sm text-[#6B6960]">Yield earned</p>
-              {positionLoading || prefsLoading ? (
-                <div className="h-8 w-16 bg-[#F8F7F4] rounded animate-pulse mt-1" />
+              <p className="text-2xl font-semibold text-[#22C55E]">
+                +${vaultPosition?.earned ?? '12.50'}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-[#6B6960] mt-3 pt-3 border-t border-[#E4E2DC]">
+            {strategyLabel} · {vaultPosition?.apy ?? '~5'}% APY
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Consolidate Card */}
+      {totalScattered > 0 && (
+        <Card className="border-[#E4E2DC] bg-white">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#FFF3E0] flex items-center justify-center">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="text-[#E65100]">
+                    <path d="M4 4H10V10H4V4Z" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M14 4H20V10H14V4Z" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M4 14H10V20H4V14Z" stroke="currentColor" strokeWidth="2"/>
+                    <path d="M17 14V20M14 17H20" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                  </svg>
+                </div>
+                <div>
+                  <p className="font-medium text-[#1C1B18]">Scattered Balances</p>
+                  <p className="text-sm text-[#6B6960]">${totalScattered.toFixed(2)} across {MOCK_BALANCES.length} chains</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              {MOCK_BALANCES.map((b, i) => (
+                <div key={i} className="flex items-center justify-between p-2 rounded bg-[#F8F7F4] text-sm">
+                  <span className="text-[#6B6960]">{b.chain}</span>
+                  <span className="font-medium text-[#1C1B18]">{b.amount} {b.token}</span>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              onClick={handleConsolidate}
+              disabled={consolidating}
+              className="w-full bg-[#1C1B18] hover:bg-[#2D2C28] text-white"
+            >
+              {consolidating ? (
+                <span className="flex items-center gap-2">
+                  <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+                  Consolidating...
+                </span>
               ) : (
-                <p className="text-2xl font-semibold text-[#22C55E]">
-                  +${vaultPosition?.earned ?? '0.00'}
-                </p>
+                'Consolidate to Base'
               )}
-            </div>
-          </div>
-          {(currentVault || currentStrategy) && (
-            <p className="text-xs text-[#6B6960] mt-3 pt-3 border-t border-[#E4E2DC]">
-              Earning via {strategyLabel} · {vaultPosition?.apy ?? '~4'}% APY
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Gas Tank Card */}
-      <Card className="border-[#E4E2DC] bg-white">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                gasTank.status?.estimatedPayments && gasTank.status.estimatedPayments > 20
-                  ? 'bg-[#EDF5F0]'
-                  : 'bg-[#FFF3E0]'
-              }`}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className={
-                  gasTank.status?.estimatedPayments && gasTank.status.estimatedPayments > 20
-                    ? 'text-[#22C55E]'
-                    : 'text-[#E65100]'
-                }>
-                  <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
-              <div>
-                <p className="font-medium text-[#1C1B18]">Gas Tank</p>
-                <p className="text-sm text-[#6B6960]">
-                  {gasTank.loading ? (
-                    <span className="inline-block h-4 w-20 bg-[#E4E2DC] rounded animate-pulse" />
-                  ) : gasTank.status?.balanceWei && gasTank.status.balanceWei >= BigInt(100000000000000) ? (
-                    <>Active • ~{Math.floor(Number(gasTank.status.balanceWei) / (50000 * 0.01e9))} payments</>
-                  ) : (
-                    <>Not activated</>
-                  )}
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              {gasTank.loading ? (
-                <div className="h-6 w-16 bg-[#F8F7F4] rounded animate-pulse" />
-              ) : (
-                <p className="font-semibold text-[#1C1B18]">
-                  {gasTank.status?.balance ? `${parseFloat(gasTank.status.balance).toFixed(4)} ETH` : '0 ETH'}
-                </p>
-              )}
-            </div>
-          </div>
-          {gasTank.status?.estimatedPayments !== undefined && gasTank.status.estimatedPayments > 0 && (
-            <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#E4E2DC]">
-              <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-              <p className="text-xs text-[#22C55E]">AI agent monitoring • Auto-refills when low</p>
-            </div>
-          )}
-          {gasTank.status?.estimatedPayments !== undefined && gasTank.status.estimatedPayments < 20 && gasTank.status.estimatedPayments > 0 && (
-            <p className="text-xs text-[#E65100] mt-2">
-              Low balance - AI agent will refill from your cheapest chain
-            </p>
-          )}
-          {!gasTank.status?.canReceive && gasTank.status !== null && (
-            <p className="text-xs text-[#E65100] mt-3 pt-3 border-t border-[#E4E2DC]">
-              Gas tank empty - add funds to enable gasless payments
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* AI Agent Status */}
-      <Card className="border-[#E4E2DC] bg-white">
-        <CardContent className="p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-[#F0F9FF] flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#0EA5E9]">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2v2h-2v-2zm1-10c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z" fill="currentColor"/>
-                </svg>
-              </div>
-              <h2 className="font-semibold text-[#1C1B18]">AI Agent</h2>
-            </div>
-            {agent.lastRun && (
-              <span className="text-xs text-[#6B6960]">
-                Last run: {agent.lastRun.toLocaleTimeString()}
-              </span>
-            )}
-          </div>
-
-          {agent.simulation?.success ? (
-            <div className="space-y-3">
-              {/* Steps */}
-              <div className="space-y-2">
-                {agent.simulation.simulation.steps.map((step) => (
-                  <div key={step.step} className="flex items-center gap-2 text-sm">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium ${
-                      step.status === 'quote_ready' ? 'bg-[#EDF5F0] text-[#22C55E]' :
-                      step.status === 'simulated' ? 'bg-[#F0F9FF] text-[#0EA5E9]' :
-                      'bg-[#FFF3E0] text-[#E65100]'
-                    }`}>
-                      {step.status === 'quote_ready' ? '✓' : step.status === 'simulated' ? '~' : '!'}
-                    </div>
-                    <span className="text-[#1C1B18]">{step.action}</span>
-                    <span className="text-[#9C9B93] text-xs">({step.provider})</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Integrations */}
-              <div className="flex gap-2 pt-2 border-t border-[#E4E2DC]">
-                {agent.simulation.simulation.integrations.lifi.realQuote && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#EDF5F0] text-[#22C55E] text-xs font-medium">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    LI.FI Quote
-                  </span>
-                )}
-                {agent.simulation.simulation.integrations.uniswapV4.used && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#FDF2F8] text-[#EC4899] text-xs font-medium">
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                      <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                    Uniswap v4
-                  </span>
-                )}
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-[#6B6960]">
-              Run a simulation to see how the AI agent handles gas tank refills.
-            </p>
-          )}
-
-          <Button
-            onClick={agent.runSimulation}
-            disabled={agent.loading}
-            variant="outline"
-            className="w-full mt-3 border-[#E4E2DC]"
-          >
-            {agent.loading ? (
-              <span className="flex items-center gap-2">
-                <span className="animate-spin w-4 h-4 border-2 border-[#1C1B18] border-t-transparent rounded-full" />
-                Running...
-              </span>
-            ) : (
-              'Run Simulation'
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Recent Payments */}
       <Card className="border-[#E4E2DC] bg-white">
         <CardContent className="p-5">
           <h2 className="font-semibold text-[#1C1B18] mb-3">Recent Payments</h2>
-          {receiptsLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map(i => <div key={i} className="h-12 bg-[#F8F7F4] rounded-lg animate-pulse" />)}
-            </div>
-          ) : receipts.length === 0 ? (
-            <div className="text-center py-6">
-              <p className="text-[#6B6960]">No payments yet</p>
-              <p className="text-sm text-[#9C9B93] mt-1">Share your link to start receiving</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {receipts.slice(0, 5).map((r) => (
-                <div key={r.txHash} className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8]">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#EDF5F0] flex items-center justify-center">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-[#22C55E]">
-                        <path d="M12 5V19M5 12L12 5L19 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-[#1C1B18]">From {formatAddress(r.from)}</p>
-                      <p className="text-xs text-[#6B6960]">{formatDate(r.createdAt)} · {r.chain}</p>
-                    </div>
+          <div className="space-y-2">
+            {MOCK_RECEIPTS.map((r) => (
+              <div key={r.txHash} className="flex items-center justify-between p-3 rounded-lg bg-[#FAFAF8]">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#EDF5F0] flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-[#22C55E]">
+                      <path d="M12 5V19M5 12L12 5L19 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
                   </div>
-                  <p className="font-medium text-[#1C1B18]">+{r.amount} {r.token}</p>
+                  <div>
+                    <p className="text-sm font-medium text-[#1C1B18]">From {formatAddress(r.from)}</p>
+                    <p className="text-xs text-[#6B6960]">{formatDate(r.createdAt)} · {r.chain}</p>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <p className="font-medium text-[#1C1B18]">+{r.amount} {r.token}</p>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 
-      {/* Customize Settings Toggle */}
+      {/* Settings Toggle */}
       <button
         onClick={() => setShowSettings(!showSettings)}
         className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-[#6B6960] hover:text-[#1C1B18] transition-colors"
@@ -551,17 +361,16 @@ export function ReceiverDashboard() {
         {showSettings ? 'Hide settings' : 'Customize settings'}
       </button>
 
-      {/* Settings Panel (Collapsed) */}
+      {/* Settings Panel */}
       {showSettings && (
         <Card className="border-[#E4E2DC] bg-white">
           <CardContent className="p-5 space-y-5">
-            {/* Strategy Selection */}
             <div>
               <h3 className="font-medium text-[#1C1B18] mb-3">Receive As</h3>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'liquid', label: 'USDC', desc: 'Instant access' },
-                  { id: 'yield', label: 'Earn Yield', desc: 'Auto-deposit to vault (~5% APY)' },
+                  { id: 'yield', label: 'Earn Yield', desc: 'Auto-deposit (~5% APY)' },
                 ].map((s) => (
                   <button
                     key={s.id}
@@ -577,66 +386,7 @@ export function ReceiverDashboard() {
               </div>
             </div>
 
-            {/* Gas Tank - Add Funds */}
-            <div>
-              <h3 className="font-medium text-[#1C1B18] mb-3">Gas Tank</h3>
-              <div className="p-4 rounded-lg bg-[#F8F7F4] space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6B6960]">Current balance</span>
-                  <span className="font-medium text-[#1C1B18]">
-                    {gasTank.status?.balance ? `${parseFloat(gasTank.status.balance).toFixed(4)} ETH` : '0 ETH'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-[#6B6960]">Payments funded</span>
-                  <span className="font-medium text-[#1C1B18]">
-                    ~{gasTank.status?.estimatedPayments ?? 0}
-                  </span>
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <input
-                    type="text"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                    placeholder="0.001"
-                    className="flex-1 px-3 py-2 rounded-lg text-sm font-medium border border-[#E4E2DC] bg-white text-[#1C1B18] focus:outline-none focus:ring-2 focus:ring-[#1C1B18]"
-                  />
-                  {['0.001', '0.005', '0.01'].map((amt) => (
-                    <button
-                      key={amt}
-                      onClick={() => setDepositAmount(amt)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                        depositAmount === amt
-                          ? 'bg-[#1C1B18] text-white'
-                          : 'bg-white border border-[#E4E2DC] text-[#1C1B18]'
-                      }`}
-                    >
-                      {amt}
-                    </button>
-                  ))}
-                </div>
-                <Button
-                  onClick={() => gasTank.deposit(depositAmount)}
-                  disabled={gasTank.txPending}
-                  className="w-full bg-[#1C1B18] hover:bg-[#2D2C28] text-white"
-                >
-                  {gasTank.txPending ? (
-                    <span className="flex items-center gap-2">
-                      <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                      Adding...
-                    </span>
-                  ) : (
-                    `Add ${depositAmount} ETH`
-                  )}
-                </Button>
-                {gasTank.error && (
-                  <p className="text-xs text-red-600">{gasTank.error}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Save button */}
-            {(vaultChanged || strategyChanged) && (
+            {strategyChanged && (
               <Button
                 onClick={handleSave}
                 disabled={saving}
@@ -664,7 +414,6 @@ export function ReceiverDashboard() {
 
             {saveError && <p className="text-sm text-red-600">{saveError}</p>}
 
-            {/* ENS link */}
             <a
               href={`https://app.ens.domains/${ensName}`}
               target="_blank"
@@ -676,7 +425,6 @@ export function ReceiverDashboard() {
           </CardContent>
         </Card>
       )}
-
     </div>
   )
 }

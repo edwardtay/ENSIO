@@ -12,7 +12,7 @@
  */
 
 import { getContractCallsQuote, getQuote, type ContractCallsQuoteRequest, type QuoteRequest } from '@lifi/sdk'
-import { encodeFunctionData } from 'viem'
+import { encodeFunctionData, getAddress } from 'viem'
 import type { RouteOption } from '@/lib/types'
 import { CHAIN_MAP, getTokenAddress, getTokenDecimals } from './tokens'
 import { getCached, setCache } from './route-cache'
@@ -81,9 +81,19 @@ export function isRestakingRouterDeployed(): boolean {
 export async function getRestakingRouteQuote(
   params: RestakingRouteParams
 ): Promise<RestakingRouteQuote | { error: string }> {
+  // Normalize addresses to checksummed format (LI.FI requires this)
+  let fromAddress: `0x${string}`
+  let recipient: `0x${string}`
+  try {
+    fromAddress = getAddress(params.fromAddress)
+    recipient = getAddress(params.recipient)
+  } catch {
+    return { error: 'Invalid address format' }
+  }
+
   // If RestakingRouter not deployed, fall back to simple WETH transfer
   if (!isRestakingRouterDeployed()) {
-    return getSimpleRestakingQuote(params)
+    return getSimpleRestakingQuote({ ...params, fromAddress, recipient })
   }
 
   const strategy = STRATEGIES.restaking
@@ -104,7 +114,7 @@ export async function getRestakingRouteQuote(
     Math.floor(parseFloat(params.amount) * 10 ** decimals)
   ).toString()
 
-  const cacheKey = `restaking:${fromChainId}:${params.fromToken}:${params.recipient}:${amountWei}`
+  const cacheKey = `restaking:${fromChainId}:${params.fromToken}:${recipient}:${amountWei}`
   const cached = getCached<RestakingRouteQuote>(cacheKey)
   if (cached) return cached
 
@@ -114,20 +124,20 @@ export async function getRestakingRouteQuote(
       abi: RESTAKING_ROUTER_ABI,
       functionName: 'depositToRestaking',
       args: [
-        params.recipient as `0x${string}`,
+        recipient,
         BigInt(amountWei),
       ],
     })
 
     // Get quote with contract call
     const quoteRequest: ContractCallsQuoteRequest = {
-      fromAddress: params.fromAddress as `0x${string}`,
+      fromAddress: fromAddress,
       fromChain: fromChainId,
       fromToken: fromTokenAddr,
       toChain: toChainId,
       toToken: toTokenAddr, // WETH on Base
       toAmount: amountWei,
-      toFallbackAddress: params.recipient as `0x${string}`,
+      toFallbackAddress: recipient,
       contractCalls: [
         {
           fromAmount: amountWei,
@@ -186,6 +196,16 @@ export async function getRestakingRouteQuote(
 async function getSimpleRestakingQuote(
   params: RestakingRouteParams
 ): Promise<RestakingRouteQuote | { error: string }> {
+  // Normalize addresses to checksummed format (LI.FI requires this)
+  let fromAddress: `0x${string}`
+  let recipient: `0x${string}`
+  try {
+    fromAddress = getAddress(params.fromAddress)
+    recipient = getAddress(params.recipient)
+  } catch {
+    return { error: 'Invalid address format' }
+  }
+
   const strategy = STRATEGIES.restaking
   const fromChainId = CHAIN_MAP[params.fromChain] || CHAIN_MAP.ethereum
   const toChainId = strategy.destChainId
@@ -203,13 +223,13 @@ async function getSimpleRestakingQuote(
 
   try {
     const quoteRequest: QuoteRequest = {
-      fromAddress: params.fromAddress as `0x${string}`,
+      fromAddress: fromAddress,
       fromChain: fromChainId,
       fromToken: fromTokenAddr,
       fromAmount: amountWei,
       toChain: toChainId,
       toToken: toTokenAddr,
-      toAddress: params.recipient as `0x${string}`,
+      toAddress: recipient,
       slippage: params.slippage || 0.01,
     }
 

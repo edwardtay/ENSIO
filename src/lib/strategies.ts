@@ -5,13 +5,14 @@
  * Supports single strategy or multi-strategy allocation.
  *
  * ENS Record Format:
- * - Single: flowfi.strategy = "yield"
- * - Multi:  flowfi.strategies = "yield:50,restaking:50"
+ * - Single: flowfi.strategy = "liquid" or "restaking"
+ * - Multi:  flowfi.strategies = "liquid:50,restaking:50"
  *
  * Strategies:
- * - yield: Deposit to ERC-4626 vault (Aave, Morpho) for yield
+ * - liquid: Keep as liquid USDC (default, no deposit)
  * - restaking: Deposit to Renzo for ezETH restaking (EigenLayer points)
- * - liquid: Keep as liquid USDC (no deposit)
+ *
+ * Note: yield strategy (vault deposits) is disabled due to LI.FI contract calls bug.
  */
 
 export type StrategyType = 'yield' | 'restaking' | 'liquid'
@@ -137,8 +138,8 @@ export function parseStrategyAllocation(
     }
   }
 
-  // Default to yield
-  return [{ strategy: 'yield', percentage: 100 }]
+  // Default to liquid
+  return [{ strategy: 'liquid', percentage: 100 }]
 }
 
 /**
@@ -171,9 +172,9 @@ function parseMultiStrategy(record: string): StrategyAllocation[] {
     })
   }
 
-  // If no valid allocations, default to yield
+  // If no valid allocations, default to liquid
   if (allocations.length === 0) {
-    return [{ strategy: 'yield', percentage: 100 }]
+    return [{ strategy: 'liquid', percentage: 100 }]
   }
 
   return allocations
@@ -184,7 +185,7 @@ function parseMultiStrategy(record: string): StrategyAllocation[] {
  */
 export function formatStrategyAllocation(allocations: StrategyAllocation[]): string {
   if (allocations.length === 0) {
-    return 'yield:100'
+    return 'liquid:100'
   }
 
   if (allocations.length === 1 && allocations[0].percentage === 100) {
@@ -203,19 +204,19 @@ export function formatStrategyAllocation(allocations: StrategyAllocation[]): str
  * Get strategy from single strategy ID (backward compatible)
  */
 export function getStrategy(strategyId: string | undefined): Strategy {
-  if (!strategyId) return STRATEGIES.yield
+  if (!strategyId) return STRATEGIES.liquid
   const normalized = strategyId.toLowerCase().trim()
   if (normalized in STRATEGIES) {
     return STRATEGIES[normalized as StrategyType]
   }
-  return STRATEGIES.yield
+  return STRATEGIES.liquid
 }
 
 /**
  * Check if a strategy requires a router contract
  */
 export function strategyRequiresRouter(strategy: StrategyType): boolean {
-  return strategy === 'yield' || strategy === 'restaking'
+  return strategy === 'restaking'
 }
 
 /**

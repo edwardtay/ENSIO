@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { resolveENS, resolveChainAddress } from '@/lib/ens/resolve'
 import { findRoutes } from '@/lib/routing/lifi-router'
 import { findV4Routes, V4_CHAINS } from '@/lib/routing/v4-router'
-import { getYieldRouteQuote, isYieldRouteEnabled } from '@/lib/routing/yield-router'
+// Yield route disabled - see strategies.ts for details
 import { getRestakingRouteQuote, isRestakingStrategy } from '@/lib/routing/restaking-router'
 import { getMultiVaultRouteQuote, isMultiVaultRoute } from '@/lib/routing/multi-vault-router'
 import { getTokenAddress, getPreferredChainForToken, CHAIN_MAP, CHAIN_ID_TO_NAME } from '@/lib/routing/tokens'
 import { isRateLimited } from '@/lib/rate-limit'
 import { getStrategy, parseStrategyAllocation, type StrategyAllocation } from '@/lib/strategies'
-import { calculateFee, getNextTierInfo, YIELD_SHARE_RATE } from '@/lib/incentives/fee-tiers'
+import { calculateFee, getNextTierInfo } from '@/lib/incentives/fee-tiers'
 import { getVolumeRecord } from '@/lib/incentives/volume-tracker'
-import { isInternalPayment, getNetworkStats } from '@/lib/incentives/network-effects'
+import { isInternalPayment } from '@/lib/incentives/network-effects'
 import { calculateReferralReward, getReferrer } from '@/lib/incentives/referrals'
 
 // Stablecoins that should prefer Uniswap v4 for same-chain swaps
@@ -71,7 +71,6 @@ export async function POST(req: NextRequest) {
     let resolvedAddress = toAddress
     let ensSlippage: number | undefined
     let ensMaxFee: string | undefined
-    let yieldVault: string | undefined
     let ensStrategy: string | undefined
     let ensStrategies: string | undefined
     let strategyAllocations: StrategyAllocation[] = []
@@ -97,7 +96,6 @@ export async function POST(req: NextRequest) {
         }
       }
       ensMaxFee = ensResult.maxFee
-      yieldVault = ensResult.yieldVault
       ensStrategy = ensResult.strategy
       ensStrategies = ensResult.strategies
 
@@ -105,12 +103,16 @@ export async function POST(req: NextRequest) {
       strategyAllocations = parseStrategyAllocation(ensStrategy, ensStrategies)
     }
 
-    // Determine final toToken
-    // If yield vault is set, ALWAYS use USDC on Base (vault requirement)
+    // Determine final toToken based on strategy
     let finalToToken = toToken || fromToken
-    if (isYieldRouteEnabled(yieldVault)) {
+    // Restaking strategy receives WETH (converted to ezETH), liquid receives USDC
+    if (ensStrategy === 'restaking') {
+      finalToToken = 'WETH'
+      toChain = 'base'
+    } else {
+      // Default to USDC for liquid strategy
       finalToToken = 'USDC'
-      toChain = 'base' // Vaults are on Base
+      toChain = 'base'
     }
 
     // Auto-resolve destination chain if toToken isn't available there
@@ -204,41 +206,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // --- YIELD ROUTE: If recipient has vault (and not restaking), use Contract Calls for atomic deposit ---
-    let yieldRouteError: string | undefined
-    if (isYieldRouteEnabled(yieldVault) && !isRestakingStrategy(ensStrategy)) {
-      const yieldResult = await getYieldRouteQuote({
-        fromAddress: userAddress,
-        fromChain,
-        fromToken,
-        amount,
-        recipient: resolvedAddress,
-        vault: yieldVault!,
-        slippage: effectiveSlippage,
-      })
-
-      if ('error' in yieldResult) {
-        // Fall back to standard routes if yield route fails
-        console.warn('Yield route failed, falling back to standard:', yieldResult.error)
-        yieldRouteError = yieldResult.error
-      } else {
-        // Yield route found - this bridges + deposits in ONE tx
-        allRoutes = [yieldResult.route]
-
-        return NextResponse.json({
-          routes: allRoutes,
-          resolvedAddress,
-          toChain: 'base', // YieldRouter is always on Base
-          toToken: 'USDC',
-          yieldVault, // Include vault so execute knows to use yield route
-          strategy: strategy.id,
-          strategyName: strategy.name,
-          useYieldRoute: true,
-          strategyAllocations: strategyAllocations.length > 1 ? strategyAllocations : undefined,
-          isMultiStrategy: strategyAllocations.length > 1,
-        })
-      }
-    }
+    // Note: Yield strategy (vault deposits) is disabled due to LI.FI contract calls bug.
+    // All payments now go directly to recipient as USDC (liquid) or ezETH (restaking).
 
     // --- STANDARD ROUTES: No vault or yield route failed ---
 
@@ -324,7 +293,6 @@ export async function POST(req: NextRequest) {
       isInternalPayment: internalCheck.isInternal,
     })
     const tierInfo = getNextTierInfo(volumeRecord.monthlyVolumeUsd)
-    const networkStats = getNetworkStats()
 
     // Calculate referral reward (if receiver was referred)
     const referralInfo = calculateReferralReward(toAddress, feeInfo.feeAmount)
@@ -334,9 +302,7 @@ export async function POST(req: NextRequest) {
       resolvedAddress,
       toChain,
       toToken: finalToToken,
-      yieldVault: yieldVault || null,
-      useYieldRoute: false,
-      yieldRouteError: typeof yieldRouteError !== 'undefined' ? yieldRouteError : undefined,
+      strategy: ensStrategy || 'liquid',
       useV4Route,
       // Multi-strategy allocation info
       strategyAllocations: strategyAllocations.length > 1 ? strategyAllocations : undefined,
@@ -352,8 +318,6 @@ export async function POST(req: NextRequest) {
         nextTier: tierInfo.nextTier?.name || null,
         volumeToNextTier: tierInfo.volumeToNextTier,
         percentToNextTier: tierInfo.percentToNextTier.toFixed(0),
-        // Yield share info
-        yieldShareRate: ensStrategy === 'yield' ? `${YIELD_SHARE_RATE * 100}%` : null,
         // Referral info (if receiver was referred, someone earns from this payment)
         referrer: referralInfo.referrer,
         referralReward: referralInfo.referrer ? referralInfo.referralReward.toFixed(2) : null,

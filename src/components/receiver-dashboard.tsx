@@ -147,7 +147,7 @@ export function ReceiverDashboard() {
   const [showSettings, setShowSettings] = useState(false)
   const [depositAmount, setDepositAmount] = useState('0.001')
   const [selectedVaultId, setSelectedVaultId] = useState<string>('')
-  const [selectedStrategy, setSelectedStrategy] = useState<string>('yield')
+  const [selectedStrategy, setSelectedStrategy] = useState<string>('liquid')
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveTxHash, setSaveTxHash] = useState<string | null>(null)
@@ -169,7 +169,7 @@ export function ReceiverDashboard() {
   const selectedVault = VAULT_OPTIONS.find(v => v.id === selectedVaultId)
   const vaultAddress = selectedVault?.address || ''
   const vaultChanged = currentVault ? vaultAddress.toLowerCase() !== currentVault.toLowerCase() : vaultAddress !== ''
-  const strategyChanged = currentStrategy ? selectedStrategy !== currentStrategy : selectedStrategy !== 'yield'
+  const strategyChanged = currentStrategy ? selectedStrategy !== currentStrategy : selectedStrategy !== 'liquid'
 
   const handleSave = async () => {
     if (!ensName) return
@@ -274,7 +274,7 @@ export function ReceiverDashboard() {
   }
 
   const paymentLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/pay/${ensName}`
-  const strategyLabel = currentStrategy === 'restaking' ? 'Renzo' : currentStrategy === 'liquid' ? 'Liquid' : 'Aave'
+  const strategyLabel = currentStrategy === 'restaking' ? 'Renzo (ezETH)' : 'Liquid (USDC)'
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
@@ -557,12 +557,11 @@ export function ReceiverDashboard() {
           <CardContent className="p-5 space-y-5">
             {/* Strategy Selection */}
             <div>
-              <h3 className="font-medium text-[#1C1B18] mb-3">DeFi Strategy</h3>
-              <div className="grid grid-cols-3 gap-2">
+              <h3 className="font-medium text-[#1C1B18] mb-3">Receive As</h3>
+              <div className="grid grid-cols-2 gap-2">
                 {[
-                  { id: 'yield', label: 'Yield', desc: 'USDC → Aave', color: '#22C55E' },
-                  { id: 'restaking', label: 'Restaking', desc: 'WETH → Renzo', color: '#7C3AED' },
-                  { id: 'liquid', label: 'Liquid', desc: 'Keep USDC', color: '#6B7280' },
+                  { id: 'liquid', label: 'USDC', desc: 'Stablecoin, instant access', color: '#6B7280' },
+                  { id: 'restaking', label: 'ezETH', desc: 'Renzo restaking rewards', color: '#7C3AED' },
                 ].map((s) => (
                   <button
                     key={s.id}
@@ -577,34 +576,6 @@ export function ReceiverDashboard() {
                 ))}
               </div>
             </div>
-
-            {/* Vault Selection - only for yield strategy */}
-            {selectedStrategy === 'yield' && (
-              <div>
-                <h3 className="font-medium text-[#1C1B18] mb-3">Yield Vault</h3>
-                <div className="space-y-2">
-                  {VAULT_OPTIONS.map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setSelectedVaultId(v.id)}
-                      className={`w-full p-3 rounded-lg border-2 text-left transition-all flex items-center justify-between ${
-                        selectedVaultId === v.id ? 'border-[#22C55E] bg-[#F0FDF4]' : 'border-[#E4E2DC]'
-                      }`}
-                    >
-                      <div>
-                        <p className="font-medium text-sm text-[#1C1B18]">{v.name}</p>
-                        <p className="text-xs text-[#6B6960]">{v.protocol}</p>
-                      </div>
-                      {selectedVaultId === v.id && (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-[#22C55E]">
-                          <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Gas Tank - Add Funds */}
             <div>

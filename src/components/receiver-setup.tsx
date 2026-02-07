@@ -12,15 +12,14 @@ interface Props {
 }
 
 const STRATEGIES = [
-  { id: 'yield', label: 'Earn Interest', desc: 'Your money grows automatically', apy: '~5% yearly' },
-  { id: 'restaking', label: 'Maximize Returns', desc: 'Higher yields with ETH staking', apy: '~8% yearly' },
-  { id: 'liquid', label: 'Keep as Cash', desc: 'Instant access, no lock-up', apy: 'No interest' },
+  { id: 'liquid', label: 'Keep as USDC', desc: 'Instant access, no lock-up', apy: 'Stable' },
+  { id: 'restaking', label: 'Earn with ETH', desc: 'Convert to ezETH for staking rewards', apy: '~8% APY' },
 ] as const
 
 export function ReceiverSetup({ ensName, onComplete }: Props) {
   const { address, isConnected } = useAccount()
   const [done, setDone] = useState(false)
-  const [selectedStrategy, setSelectedStrategy] = useState('yield')
+  const [selectedStrategy, setSelectedStrategy] = useState('liquid')
   const [saving, setSaving] = useState(false)
 
   const handleActivate = async () => {
@@ -125,7 +124,7 @@ export function ReceiverSetup({ ensName, onComplete }: Props) {
           </div>
           <div className="flex items-center gap-2 text-sm">
             <span className="w-5 h-5 rounded-full bg-[#22C55E] text-white text-xs flex items-center justify-center">✓</span>
-            <span className="text-[#6B6960]">{selectedStrategy === 'yield' ? 'Earning interest automatically' : selectedStrategy === 'restaking' ? 'Growing via ETH staking' : 'Ready to use instantly'}</span>
+            <span className="text-[#6B6960]">{selectedStrategy === 'restaking' ? 'Growing via ETH staking' : 'Ready to use instantly'}</span>
           </div>
         </div>
 

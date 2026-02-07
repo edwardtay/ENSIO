@@ -49,6 +49,13 @@ const DEMO_ENS_CACHE: Record<string, ENSResolution> = {
     strategy: 'yield',
     yieldVault: '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB', // Aave USDC vault
   },
+  'edwardtay.eth': {
+    address: '0x3843C8727B6B6C42A57164C51a501200c2e2633A',
+    preferredChain: 'base',
+    preferredToken: 'USDC',
+    strategy: 'yield',
+    yieldVault: '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB', // Aave USDC vault
+  },
 }
 
 /**

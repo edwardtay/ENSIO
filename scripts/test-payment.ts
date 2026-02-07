@@ -9,8 +9,8 @@ config({ path: '.env.local' })
 
 // DAI on Ethereum mainnet
 const DAI_MAINNET = '0x6B175474E89094C44Da98b954EedeAC495271d0F'
-// Morpho Spark USDC Vault on Base (edwardtay.eth's yield preference)
-const MORPHO_VAULT_BASE = '0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A'
+// Morpho Spark USDC Vault on Base (ERC-4626) - edwardtay.eth's yield preference
+const MORPHO_VAULT = '0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A'
 const RECIPIENT = '0x38430336153468dcf36Af5cea7D6bc472425633A' // edwardtay.eth
 
 async function main() {
@@ -26,7 +26,8 @@ async function main() {
 
   // Setup viem clients
   // Use QuickNode RPC
-  const rpcUrl = process.env.ETH_RPC_URL || 'https://maximum-purple-mountain.quiknode.pro/b9630cbedceb81693d9fe864ac2708b64c74d7ee/'
+  // Use public RPC to avoid Flashbots expiry
+  const rpcUrl = 'https://eth.llamarpc.com'
 
   const walletClient = createWalletClient({
     account,
@@ -45,8 +46,8 @@ async function main() {
   // Setup LI.FI
   createConfig({ integrator: 'ensio' })
 
-  // Get quote for 1 DAI -> USDC on Base
-  console.log('\nGetting quote for 1 DAI -> edwardtay.eth (USDC on Base)...')
+  // Get quote for 1 DAI -> Morpho Vault shares on Base (yield deposit)
+  console.log('\nGetting quote for 1 DAI -> edwardtay.eth (Morpho Vault on Base)...')
 
   const quote = await getQuote({
     fromChain: 1,
@@ -54,7 +55,7 @@ async function main() {
     fromAddress: account.address.toLowerCase(),
     fromAmount: parseUnits('1', 18).toString(),
     toChain: 8453,
-    toToken: MORPHO_VAULT_BASE, // Vault address for yield deposit
+    toToken: MORPHO_VAULT, // Vault address = auto-deposit
     toAddress: RECIPIENT.toLowerCase(),
     slippage: 0.01,
   })

@@ -54,12 +54,9 @@ export default function HomePage() {
       <main className="flex-1 flex items-center justify-center px-6">
         <div className="max-w-2xl text-center py-12">
           {/* Main headline */}
-          <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-4 leading-tight">
-            One link for all payments.<br /><span className="text-[#22C55E]">Earn yield when funds arrive.</span>
+          <h1 className="font-[family-name:var(--font-display)] text-4xl sm:text-5xl text-[#1C1B18] mb-8 leading-tight">
+            One link to accept any crypto from any chain into your preferred token.
           </h1>
-          <p className="text-lg text-[#6B6A63] mb-8 max-w-lg mx-auto">
-            Clients pay in any token, any chain. You receive USDC earning 5% APY — pre-configured via ENS.
-          </p>
 
           <ConnectButton.Custom>
             {({ openConnectModal }) => (

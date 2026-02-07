@@ -85,3 +85,4 @@ contracts/test/
 
 # MCP server
 src/mcp/
+.env*.local

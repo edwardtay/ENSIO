@@ -105,8 +105,13 @@ export async function POST(req: NextRequest) {
       strategyAllocations = parseStrategyAllocation(ensStrategy, ensStrategies)
     }
 
-    // Determine final toToken (use fromToken if not specified, or ENS preference)
-    const finalToToken = toToken || fromToken
+    // Determine final toToken
+    // If yield vault is set, ALWAYS use USDC on Base (vault requirement)
+    let finalToToken = toToken || fromToken
+    if (isYieldRouteEnabled(yieldVault)) {
+      finalToToken = 'USDC'
+      toChain = 'base' // Vaults are on Base
+    }
 
     // Auto-resolve destination chain if toToken isn't available there
     const toChainId = CHAIN_MAP[toChain] || CHAIN_MAP.ethereum

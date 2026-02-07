@@ -24,7 +24,6 @@ const SUPPORTED_CHAINS = [
   { id: 'base', name: 'Base', chainId: 8453 },
   { id: 'arbitrum', name: 'Arbitrum', chainId: 42161 },
   { id: 'optimism', name: 'Optimism', chainId: 10 },
-  { id: 'polygon', name: 'Polygon', chainId: 137 },
 ] as const
 
 const BLOCK_EXPLORERS: Record<string, string> = {
@@ -32,7 +31,6 @@ const BLOCK_EXPLORERS: Record<string, string> = {
   base: 'https://basescan.org',
   arbitrum: 'https://arbiscan.io',
   optimism: 'https://optimistic.etherscan.io',
-  polygon: 'https://polygonscan.com',
 }
 
 type TokenBalance = {

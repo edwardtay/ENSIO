@@ -41,9 +41,9 @@ export default async function PayPage({ params, searchParams }: Props) {
       <nav className="sticky top-0 z-50 border-b border-[#E4E2DC] bg-[#F8F7F4]/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="FlowFi" className="w-7 h-7 rounded-lg" />
+            <img src="/logo.png" alt="ENSIO" className="w-7 h-7 rounded-lg" />
             <span className="text-[15px] font-semibold tracking-tight text-[#1C1B18]">
-              FlowFi
+              ENSIO
             </span>
           </Link>
         </div>

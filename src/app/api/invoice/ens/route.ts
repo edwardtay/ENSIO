@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
         invoiceHash: result.invoiceHash,
         transactions: result.transactions,
         message: `Create invoice subdomain: ${result.subdomain}`,
-        paymentUrl: `flowfi.xyz/pay/${result.subdomain}`,
+        paymentUrl: `ensio.xyz/pay/${result.subdomain}`,
       })
     }
 
@@ -88,7 +88,7 @@ export async function GET(req: NextRequest) {
         ensName,
         invoiceId: id,
         mode: 'subdomain',
-        paymentUrl: `flowfi.xyz/pay/${subdomainRecord.subdomain}`,
+        paymentUrl: `ensio.xyz/pay/${subdomainRecord.subdomain}`,
         verified: true,
       })
     }

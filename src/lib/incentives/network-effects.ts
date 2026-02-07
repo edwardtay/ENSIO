@@ -1,7 +1,7 @@
 /**
  * Network Effects: Receiver-to-Receiver 0% Fee
  *
- * When both sender and receiver are FlowFi users:
+ * When both sender and receiver are ENSIO users:
  * - 0% protocol fee (internal transfer)
  * - Creates viral loop: more receivers = more free payments
  * - Ecosystem lock-in: leaving = paying fees again
@@ -9,7 +9,7 @@
  * This is the missing piece for exponential growth.
  */
 
-// In-memory store of FlowFi receivers (in production, this would be a database)
+// In-memory store of ENSIO receivers (in production, this would be a database)
 const flowFiReceivers = new Set<string>([
   // Demo receivers (lowercase)
   'vitalik.eth',

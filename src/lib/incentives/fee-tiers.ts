@@ -1,5 +1,5 @@
 /**
- * FlowFi Fee Tier System
+ * ENSIO Fee Tier System
  *
  * Creates lock-in through volume-based discounts:
  * - Higher volume = lower fees
@@ -107,7 +107,7 @@ export function calculateFee(params: {
       feeRate: 0,
       feeAmount: 0,
       feePercent: '0%',
-      reason: 'FlowFi-to-FlowFi (0% fee)',
+      reason: 'ENSIO-to-ENSIO (0% fee)',
       isInternal: true,
       networkDiscount: '100%',
     }

@@ -16,7 +16,7 @@ import { encodeFunctionResult, namehash, keccak256, toHex } from 'viem'
  * Flow:
  * 1. User queries receipt-abc123.vitalik.eth
  * 2. ENS resolver sees wildcard, calls CCIP gateway
- * 3. Gateway returns receipt data signed by FlowFi
+ * 3. Gateway returns receipt data signed by ENSIO
  * 4. Client verifies signature and displays receipt
  */
 
@@ -123,7 +123,7 @@ export async function GET(
       // CCIP-Read compatible response
       ccipResponse: {
         data: encodeReceiptData(receipt),
-        signature: 'TODO: sign with FlowFi key',
+        signature: 'TODO: sign with ENSIO key',
       },
     })
   }
@@ -202,9 +202,9 @@ export async function POST(
     return NextResponse.json({
       success: true,
       receiptId: id,
-      receiptUrl: `https://flowfi-crypto.vercel.app/receipt/${id}`,
+      receiptUrl: `https://ensio.xyz/receipt/${id}`,
       ensSubdomain: receiptSubdomain,
-      resolveUrl: `https://flowfi-crypto.vercel.app/api/ens/receipts/${receiptSubdomain}`,
+      resolveUrl: `https://ensio.xyz/api/ens/receipts/${receiptSubdomain}`,
       receipt,
     })
   } catch (error) {

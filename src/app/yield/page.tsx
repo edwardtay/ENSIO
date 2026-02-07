@@ -9,9 +9,9 @@ export default function YieldConfigPage() {
       <nav className="sticky top-0 z-50 border-b border-[#E4E2DC] bg-[#F8F7F4]/80 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="FlowFi" className="w-7 h-7 rounded-lg" />
+            <img src="/logo.png" alt="ENSIO" className="w-7 h-7 rounded-lg" />
             <span className="text-[15px] font-semibold tracking-tight text-[#1C1B18]">
-              FlowFi
+              ENSIO
             </span>
           </Link>
           <Link
@@ -27,7 +27,7 @@ export default function YieldConfigPage() {
       <main className="max-w-lg mx-auto px-6 py-12">
         <div className="mb-8">
           <h1 className="font-[family-name:var(--font-display)] text-3xl text-[#1C1B18] mb-2">
-            FlowFi
+            ENSIO
           </h1>
           <p className="text-[#6B6960]">
             Configure your ENS to auto-deposit incoming payments into yield vaults

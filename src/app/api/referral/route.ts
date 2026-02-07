@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
   // Return referral program info
   return NextResponse.json({
     program: {
-      name: 'FlowFi Referral Program',
+      name: 'ENSIO Referral Program',
       feeShare: `${REFERRAL_FEE_SHARE * 100}%`,
       duration: '6 months',
       description: 'Earn 50% of protocol fees from users you refer for 6 months',

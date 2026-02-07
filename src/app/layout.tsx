@@ -23,7 +23,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FlowFi — Accept any token, earn yield",
+  title: "ENSIO — Accept any token, earn yield",
   description:
     "Accept any token on any chain. Auto-convert to USDC and deposit to yield vaults via ENS + Uniswap v4 + LI.FI.",
 };

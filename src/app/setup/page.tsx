@@ -10,8 +10,8 @@ export default function SetupPage() {
       <header className="border-b border-[#E4E2DC] bg-white">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <img src="/logo.png" alt="FlowFi" className="w-7 h-7 rounded-lg" />
-            <span className="text-lg font-semibold text-[#1C1B18]">FlowFi</span>
+            <img src="/logo.png" alt="ENSIO" className="w-7 h-7 rounded-lg" />
+            <span className="text-lg font-semibold text-[#1C1B18]">ENSIO</span>
           </Link>
         </div>
       </header>

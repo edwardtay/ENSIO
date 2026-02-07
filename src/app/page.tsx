@@ -14,9 +14,9 @@ export default function HomePage() {
         {/* Header */}
         <header className="flex items-center justify-between px-5 sm:px-8 py-3 border-b border-[#E4E2DC] bg-white shrink-0">
           <div className="flex items-center gap-2.5">
-            <img src="/logo.png" alt="FlowFi" className="w-7 h-7 rounded-lg" />
+            <img src="/logo.png" alt="ENSIO" className="w-7 h-7 rounded-lg" />
             <span className="text-[15px] font-semibold tracking-tight text-[#1C1B18]">
-              FlowFi
+              ENSIO
             </span>
           </div>
           <ConnectButton />
@@ -34,8 +34,8 @@ export default function HomePage() {
       <nav className="border-b border-[#E4E2DC] bg-[#F8F7F4]/80 backdrop-blur-xl">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="FlowFi" className="w-7 h-7 rounded-lg" />
-            <span className="text-sm font-semibold text-[#1C1B18]">FlowFi</span>
+            <img src="/logo.png" alt="ENSIO" className="w-7 h-7 rounded-lg" />
+            <span className="text-sm font-semibold text-[#1C1B18]">ENSIO</span>
           </div>
           <ConnectButton.Custom>
             {({ openConnectModal }) => (
@@ -80,7 +80,7 @@ export default function HomePage() {
             <div className="flex-1 text-center">
               <div className="w-10 h-10 rounded-full bg-[#1C1B18] text-white flex items-center justify-center mx-auto mb-2 text-sm font-semibold">1</div>
               <p className="font-semibold text-[#1C1B18]">Share your link</p>
-              <p className="text-[#9C9B93] text-xs mt-1">alice.eth → flowfi.xyz/pay/alice.eth</p>
+              <p className="text-[#9C9B93] text-xs mt-1">alice.eth → ensio.xyz/pay/alice.eth</p>
             </div>
             <div className="flex-1 text-center">
               <div className="w-10 h-10 rounded-full bg-[#1C1B18] text-white flex items-center justify-center mx-auto mb-2 text-sm font-semibold">2</div>

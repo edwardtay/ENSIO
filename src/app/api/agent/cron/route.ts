@@ -28,7 +28,7 @@ import type { ParsedIntent } from '@/lib/types'
 import { parseIntent, makeDecision, type PaymentIntent } from '@/lib/ai/intent-parser'
 
 // Initialize LI.FI SDK
-createConfig({ integrator: 'flowfi-agent' })
+createConfig({ integrator: 'ensio-agent' })
 
 // Agent wallet (for executing transactions)
 const AGENT_PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY as `0x${string}` | undefined

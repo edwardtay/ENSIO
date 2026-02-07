@@ -91,16 +91,16 @@ export async function getYieldRouteQuote(
   if (cached) return cached
 
   try {
-    // Simple direct transfer - send USDC to recipient
-    // Vault deposit can be done manually by recipient or via separate tx
+    // LI.FI vault zap: use vault address as toToken for atomic deposit
+    // This triggers LI.FI Composer to swap + deposit in one tx
     const quoteUrl = new URL(`${LIFI_API}/quote`)
     quoteUrl.searchParams.set('fromAddress', params.fromAddress)
     quoteUrl.searchParams.set('fromChain', fromChainId.toString())
     quoteUrl.searchParams.set('fromToken', fromTokenAddr)
     quoteUrl.searchParams.set('fromAmount', amountWei)
     quoteUrl.searchParams.set('toChain', toChainId.toString())
-    quoteUrl.searchParams.set('toToken', toTokenAddr)
-    quoteUrl.searchParams.set('toAddress', normalizedRecipient)
+    quoteUrl.searchParams.set('toToken', params.vault) // Vault address = auto deposit
+    quoteUrl.searchParams.set('toAddress', normalizedRecipient) // Shares go to recipient
     quoteUrl.searchParams.set('slippage', (params.slippage || 0.005).toString())
     quoteUrl.searchParams.set('denyExchanges', DENY_EXCHANGES.join(','))
     quoteUrl.searchParams.set('integrator', 'ensio')

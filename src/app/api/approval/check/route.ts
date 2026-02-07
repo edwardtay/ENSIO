@@ -4,10 +4,10 @@ import { base, mainnet, arbitrum, optimism, polygon, avalanche, bsc, zkSync, lin
 
 // Chain configs
 const CHAIN_CONFIGS: Record<string, { chain: Chain; rpc: string }> = {
-  base: { chain: base, rpc: 'https://mainnet.base.org' },
-  ethereum: { chain: mainnet, rpc: 'https://eth.llamarpc.com' },
-  arbitrum: { chain: arbitrum, rpc: 'https://arb1.arbitrum.io/rpc' },
-  optimism: { chain: optimism, rpc: 'https://mainnet.optimism.io' },
+  base: { chain: base, rpc: process.env.BASE_RPC_URL || 'https://mainnet.base.org' },
+  ethereum: { chain: mainnet, rpc: process.env.ETH_RPC_URL || 'https://eth.llamarpc.com' },
+  arbitrum: { chain: arbitrum, rpc: process.env.ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc' },
+  optimism: { chain: optimism, rpc: process.env.OPTIMISM_RPC_URL || 'https://mainnet.optimism.io' },
   polygon: { chain: polygon, rpc: 'https://polygon-rpc.com' },
   avalanche: { chain: avalanche, rpc: 'https://api.avax.network/ext/bc/C/rpc' },
   bsc: { chain: bsc, rpc: 'https://bsc-dataseed.binance.org' },

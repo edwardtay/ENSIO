@@ -27,10 +27,10 @@ async function getEthPrice(): Promise<number> {
 
 // LI.FI supported chains with token addresses
 const CHAIN_CONFIGS = [
-  { id: 8453, name: 'base', chain: base, rpc: 'https://mainnet.base.org' },
-  { id: 1, name: 'ethereum', chain: mainnet, rpc: 'https://eth.llamarpc.com' },
-  { id: 42161, name: 'arbitrum', chain: arbitrum, rpc: 'https://arb1.arbitrum.io/rpc' },
-  { id: 10, name: 'optimism', chain: optimism, rpc: 'https://mainnet.optimism.io' },
+  { id: 8453, name: 'base', chain: base, rpc: process.env.BASE_RPC_URL || 'https://mainnet.base.org' },
+  { id: 1, name: 'ethereum', chain: mainnet, rpc: process.env.ETH_RPC_URL || 'https://eth.llamarpc.com' },
+  { id: 42161, name: 'arbitrum', chain: arbitrum, rpc: process.env.ARBITRUM_RPC_URL || 'https://arb1.arbitrum.io/rpc' },
+  { id: 10, name: 'optimism', chain: optimism, rpc: process.env.OPTIMISM_RPC_URL || 'https://mainnet.optimism.io' },
   { id: 137, name: 'polygon', chain: polygon, rpc: 'https://polygon-rpc.com' },
   { id: 43114, name: 'avalanche', chain: avalanche, rpc: 'https://api.avax.network/ext/bc/C/rpc' },
   { id: 56, name: 'bsc', chain: bsc, rpc: 'https://bsc-dataseed.binance.org' },

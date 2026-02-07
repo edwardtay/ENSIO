@@ -21,6 +21,22 @@ const MOCK_BALANCES = [
   { chain: 'Polygon', token: 'USDC', amount: '45.00', usdValue: 45.00 },
 ]
 
+// Preferences options
+const TOKENS = ['USDC', 'USDT', 'ETH'] as const
+const CHAINS = [
+  { id: 8453, name: 'Base' },
+  { id: 42161, name: 'Arbitrum' },
+  { id: 1, name: 'Ethereum' },
+  { id: 10, name: 'Optimism' },
+] as const
+
+// Default vault (Morpho Spark on Base)
+const DEFAULT_VAULT = {
+  address: '0x7BfA7C4f149E7415b73bdeDfe609237e29CBF34A',
+  name: 'Morpho Spark',
+  apy: '~5%',
+}
+
 type VaultPosition = {
   shares: string
   assets: string
@@ -79,7 +95,9 @@ export function ReceiverDashboard() {
   const { position: vaultPosition, loading: positionLoading } = useVaultPosition(currentVault ?? undefined, address)
 
   const [showSettings, setShowSettings] = useState(false)
-  const [selectedStrategy, setSelectedStrategy] = useState<string>('liquid')
+  const [selectedToken, setSelectedToken] = useState<string>('USDC')
+  const [selectedChain, setSelectedChain] = useState<number>(8453)
+  const [earnYield, setEarnYield] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveSuccess, setSaveSuccess] = useState(false)
   const [saveTxHash, setSaveTxHash] = useState<string | null>(null)
@@ -87,11 +105,15 @@ export function ReceiverDashboard() {
   const [copied, setCopied] = useState(false)
   const [consolidating, setConsolidating] = useState(false)
 
+  // Sync with current preferences from ENS
   useEffect(() => {
-    if (currentStrategy) setSelectedStrategy(currentStrategy)
+    if (currentStrategy === 'yield') {
+      setEarnYield(true)
+    }
   }, [currentStrategy])
 
-  const strategyChanged = currentStrategy ? selectedStrategy !== currentStrategy : selectedStrategy !== 'liquid'
+  // Check if settings have changed
+  const hasChanges = earnYield !== (currentStrategy === 'yield')
   const totalScattered = MOCK_BALANCES.reduce((sum, b) => sum + b.usdValue, 0)
 
   const handleSave = async () => {
@@ -104,10 +126,26 @@ export function ReceiverDashboard() {
     try {
       if (chainId !== 1) await switchChainAsync({ chainId: 1 })
 
+      // Build the config
+      const config = {
+        version: '1.0',
+        receive: {
+          token: selectedToken,
+          chain: selectedChain,
+          ...(earnYield && selectedToken === 'USDC' && selectedChain === 8453
+            ? { vault: DEFAULT_VAULT.address }
+            : {}),
+        },
+      }
+
       const res = await fetch('/api/ens/set-strategy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ensName, strategy: selectedStrategy }),
+        body: JSON.stringify({
+          ensName,
+          strategy: earnYield ? 'yield' : 'liquid',
+          config, // Pass full config for com.pay.config record
+        }),
       })
 
       if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Failed')
@@ -199,7 +237,8 @@ export function ReceiverDashboard() {
   }
 
   const paymentLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/pay/${ensName}`
-  const strategyLabel = currentStrategy === 'yield' ? 'Earning Yield' : 'USDC (Liquid)'
+  const chainName = CHAINS.find(c => c.id === selectedChain)?.name || 'Base'
+  const strategyLabel = earnYield ? `${selectedToken} → Yield (${DEFAULT_VAULT.apy})` : `${selectedToken} on ${chainName}`
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
@@ -365,28 +404,86 @@ export function ReceiverDashboard() {
       {showSettings && (
         <Card className="border-[#E4E2DC] bg-white">
           <CardContent className="p-5 space-y-5">
+            {/* Token Selection */}
             <div>
-              <h3 className="font-medium text-[#1C1B18] mb-3">Receive As</h3>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { id: 'liquid', label: 'USDC', desc: 'Instant access' },
-                  { id: 'yield', label: 'Earn Yield', desc: 'Auto-deposit (~5% APY)' },
-                ].map((s) => (
+              <label className="text-xs font-medium text-[#6B6960] uppercase tracking-wide">Receive as</label>
+              <div className="flex gap-2 mt-2">
+                {TOKENS.map((token) => (
                   <button
-                    key={s.id}
-                    onClick={() => setSelectedStrategy(s.id)}
-                    className={`p-3 rounded-lg border-2 text-left transition-all ${
-                      selectedStrategy === s.id ? 'border-[#1C1B18] bg-[#FAFAF8]' : 'border-[#E4E2DC]'
+                    key={token}
+                    onClick={() => {
+                      setSelectedToken(token)
+                      // Reset yield if not USDC
+                      if (token !== 'USDC') setEarnYield(false)
+                    }}
+                    className={`flex-1 py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${
+                      selectedToken === token
+                        ? 'border-[#1C1B18] bg-[#1C1B18] text-white'
+                        : 'border-[#E4E2DC] text-[#6B6960] hover:border-[#9C9B93]'
                     }`}
                   >
-                    <p className="font-medium text-sm text-[#1C1B18]">{s.label}</p>
-                    <p className="text-xs text-[#6B6960]">{s.desc}</p>
+                    {token}
                   </button>
                 ))}
               </div>
             </div>
 
-            {strategyChanged && (
+            {/* Chain Selection */}
+            <div>
+              <label className="text-xs font-medium text-[#6B6960] uppercase tracking-wide">On chain</label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {CHAINS.map((chain) => (
+                  <button
+                    key={chain.id}
+                    onClick={() => {
+                      setSelectedChain(chain.id)
+                      // Reset yield if not Base
+                      if (chain.id !== 8453) setEarnYield(false)
+                    }}
+                    className={`py-2.5 px-4 rounded-lg border-2 font-medium transition-all ${
+                      selectedChain === chain.id
+                        ? 'border-[#1C1B18] bg-[#1C1B18] text-white'
+                        : 'border-[#E4E2DC] text-[#6B6960] hover:border-[#9C9B93]'
+                    }`}
+                  >
+                    {chain.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Yield Toggle - Only for USDC on Base */}
+            {selectedToken === 'USDC' && selectedChain === 8453 && (
+              <button
+                onClick={() => setEarnYield(!earnYield)}
+                className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
+                  earnYield
+                    ? 'border-[#22C55E] bg-[#F0FDF4]'
+                    : 'border-[#E4E2DC] bg-white hover:border-[#9C9B93]'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-[#1C1B18]">Earn yield automatically</p>
+                    <p className="text-sm text-[#6B6960]">
+                      Deposits to {DEFAULT_VAULT.name}
+                    </p>
+                  </div>
+                  <span className={`text-sm font-medium ${earnYield ? 'text-[#22C55E]' : 'text-[#9C9B93]'}`}>
+                    {DEFAULT_VAULT.apy}
+                  </span>
+                </div>
+              </button>
+            )}
+
+            {/* Preview */}
+            <div className="rounded-lg bg-[#F8F7F4] p-4">
+              <p className="text-xs text-[#9C9B93] uppercase tracking-wide mb-2">When someone pays you</p>
+              <p className="text-sm text-[#1C1B18]">{strategyLabel}</p>
+            </div>
+
+            {/* Save Button */}
+            {hasChanges && (
               <Button
                 onClick={handleSave}
                 disabled={saving}
@@ -413,6 +510,10 @@ export function ReceiverDashboard() {
             )}
 
             {saveError && <p className="text-sm text-red-600">{saveError}</p>}
+
+            <p className="text-xs text-center text-[#9C9B93]">
+              One transaction to set your payment config on ENS
+            </p>
 
             <a
               href={`https://app.ens.domains/${ensName}`}

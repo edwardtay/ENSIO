@@ -50,7 +50,7 @@ const DEMO_ENS_CACHE: Record<string, ENSResolution> = {
     yieldVault: '0x4e65fE4DbA92790696d040ac24Aa414708F5c0AB', // Aave USDC vault
   },
   'edwardtay.eth': {
-    address: '0x3843C8727B6B6C42A57164C51a501200c2e2633A',
+    address: '0x38430336153468dcf36Af5cea7D6bc472425633A',
     preferredChain: 'base',
     preferredToken: 'USDC',
     strategy: 'yield',
